@@ -1,6 +1,8 @@
 RoadRunner: a simple Couchbase Server workload generator for Java
 ==================================================================
 
+![RoadRunner](http://media.comicvine.com/uploads/9/96811/2101013-road_runner.jpg)
+
 RoadRunner is a workload generator written in Java for Couchbase Server. It is intended to be used as a standalone jar. It provides support for customizing lots of aspects, like number of threads per CouchbaseClient, number of CouchbaseClients, amount of docs to store and so on.
 
 Running the `jar` with `-h` shows the supported options:
@@ -56,6 +58,7 @@ Build
 -----
 The project is a simple maven project, but it has a dependency onto [hist4j](http://code.google.com/p/hist4j/) to calculate the percentiles. This dependency is not in maven, so you need to get it into your local repo. Clone the source, build it and store it into your local `.m2` repo. It will then be picked up during build.
 
+```
 michael@daschlbook ~/histogram $ git clone https://github.com/flaptor/hist4j.git
 michael@daschlbook ~/histogram $ cd hist4j/
 michael@daschlbook ~/histogram/hist4j $ ant jar
@@ -63,6 +66,7 @@ michael@daschlbook ~/histogram/hist4j $ mvn install:install-file -Dfile=output/h
 ...
 [INFO] Installing /Users/michael/histogram/hist4j/output/hist4j-trunk.jar to /Users/michael/.m2/repository/com/flaptor/hist4j/1.0/hist4j-1.0.jar
 ...
+```
 
 Then, clone the RoadRunner project and build it through maven:
 ```
