@@ -48,7 +48,7 @@ final class GlobalConfig {
   private static final String DEFAULT_PASSWORD = "";
   private static final String DEFAULT_NUM_THREADS = "1";
   private static final String DEFAULT_NUM_CLIENTS = "1";
-  private static final String DEFAULT_NUM_DOCS = "10";
+  private static final String DEFAULT_NUM_DOCS = "1000";
   private static final String DEFAULT_RATIO = "1";
 
   private final List<URI> nodes;
