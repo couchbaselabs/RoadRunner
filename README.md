@@ -1,8 +1,6 @@
 RoadRunner: a simple Couchbase Server workload generator for Java
 ==================================================================
 
-![RoadRunner](http://media.comicvine.com/uploads/9/96811/2101013-road_runner.jpg)
-
 RoadRunner is a workload generator written in Java for Couchbase Server. It is intended to be used as a standalone jar. It provides support for customizing lots of aspects, like number of threads per CouchbaseClient, number of CouchbaseClients, amount of docs to store and so on.
 
 Running the `jar` with `-h` shows the supported options:
