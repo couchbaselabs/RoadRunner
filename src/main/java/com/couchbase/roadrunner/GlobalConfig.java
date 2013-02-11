@@ -50,6 +50,7 @@ final class GlobalConfig {
   private static final String DEFAULT_NUM_CLIENTS = "1";
   private static final String DEFAULT_NUM_DOCS = "1000";
   private static final String DEFAULT_RATIO = "1";
+  private static final String DEFAULT_SAMPLING = "100";
 
   private final List<URI> nodes;
   private final String bucket;
@@ -58,6 +59,7 @@ final class GlobalConfig {
   private final int numClients;
   private final long numDocs;
   private final int ratio;
+  private final int sampling;
 
   /**
    * Create the GlobalConfig.
@@ -69,7 +71,7 @@ final class GlobalConfig {
    * @param numClients The number of CouchbaseClients.
    */
   private GlobalConfig(List<URI> nodes, String bucket, String password,
-    int numThreads, int numClients, long numDocs, int ratio) {
+    int numThreads, int numClients, long numDocs, int ratio, int sampling) {
     this.nodes = Collections.unmodifiableList(nodes);
     this.bucket = bucket;
     this.password = password;
@@ -77,6 +79,7 @@ final class GlobalConfig {
     this.numClients = numClients;
     this.numDocs = numDocs;
     this.ratio = ratio;
+    this.sampling = sampling;
   }
 
   /**
@@ -101,9 +104,12 @@ final class GlobalConfig {
       ? args.getOptionValue("num-docs") : DEFAULT_NUM_DOCS;
     String ratio = args.hasOption("ratio")
       ? args.getOptionValue("ratio") : DEFAULT_RATIO;
+    String sampling = args.hasOption("sampling")
+      ? args.getOptionValue("sampling") : DEFAULT_SAMPLING;
     return new GlobalConfig(prepareNodeList(nodes), bucket, password,
       Integer.parseInt(numThreads), Integer.parseInt(numClients),
-      Long.parseLong(numDocs), Integer.parseInt(ratio));
+      Long.parseLong(numDocs), Integer.parseInt(ratio),
+      Integer.parseInt(sampling));
   }
 
   /**
@@ -166,7 +172,7 @@ final class GlobalConfig {
     return "GlobalConfig{" + "nodes=" + nodes + ", bucket=" + bucket
       + ", password=" + password + ", numThreads=" + numThreads
       + ", numClients=" + numClients + ", numDocs=" + numDocs
-      + ", ratio=" + ratio + '}';
+      + ", ratio=" + ratio + ", sampling=" + sampling + '}';
   }
 
   /**
@@ -181,5 +187,12 @@ final class GlobalConfig {
    */
   public int getRatio() {
     return ratio;
+  }
+
+  /**
+   * @return the sampling
+   */
+  public int getSampling() {
+    return sampling;
   }
 }

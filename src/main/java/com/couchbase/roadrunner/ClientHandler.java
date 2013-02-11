@@ -25,6 +25,7 @@ package com.couchbase.roadrunner;
 import com.couchbase.client.CouchbaseClient;
 import com.couchbase.roadrunner.workloads.Workload;
 import com.google.common.base.Stopwatch;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -94,11 +95,12 @@ class ClientHandler {
    */
   public void executeWorkload(Class<? extends Workload> clazz) throws Exception {
     long docsPerThread =  (long)Math.floor(numDocs/config.getNumThreads());
+    Constructor<? extends Workload> constructor = clazz.getConstructor(
+      CouchbaseClient.class, String.class, long.class, int.class, int.class);
     for(int i=0;i<config.getNumThreads();i++) {
-      Workload workload = clazz.getConstructor(CouchbaseClient.class,
-        String.class, long.class, int.class)
-        .newInstance(this.client, this.id + "/Workload-" + (i+1),
-        docsPerThread, config.getRatio());
+     Workload workload = constructor.newInstance(this.client,
+       this.id + "/Workload-" + (i+1), docsPerThread, config.getRatio(),
+       config.getSampling());
       workloads.add(workload);
       executor.execute(workload);
     }

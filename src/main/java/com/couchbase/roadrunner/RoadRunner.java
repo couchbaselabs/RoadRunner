@@ -117,13 +117,11 @@ public final class RoadRunner {
 
     LOGGER.info("Finished running Workload.");
 
-    long totalOps = 0;
     dispatcher.prepareMeasures();
     Map<String, List<Stopwatch>> measures = dispatcher.getMeasures();
     for (Map.Entry<String, List<Stopwatch>> entry : measures.entrySet()) {
       AdaptiveHistogram histogram = new AdaptiveHistogram();
       for (Stopwatch watch : entry.getValue()) {
-        totalOps++;
         histogram.addValue(
           (long)(Math.round(watch.elapsed(TimeUnit.MICROSECONDS) * 100)/100));
       }
@@ -137,6 +135,7 @@ public final class RoadRunner {
       LOGGER.info("  99%: " + histogram.getValueForPercentile(99));
     }
 
+    long totalOps = config.getNumDocs();
     long opsPerSecond = (long) (((totalOps*0.1)
       / workloadStopwatch.elapsed(TimeUnit.MILLISECONDS)) * 10000);
     LOGGER.info("#### Total Ops: " + totalOps +", Elapsed: "
@@ -182,6 +181,7 @@ public final class RoadRunner {
       "Ratio - depending on workload (default: \"1\").");
     options.addOption("h", "help", false,
       "Print this help message.");
+    options.addOption("s", "sampling", true, "% Sample Rate (default 100%)");
     return options;
   }
 }
