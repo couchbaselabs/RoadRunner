@@ -115,14 +115,15 @@ public final class RoadRunner {
     }
     workloadStopwatch.stop();
 
-    LOGGER.info("Finished running Workload in "
-      + workloadStopwatch.elapsed(TimeUnit.MILLISECONDS) + "ms.");
+    LOGGER.info("Finished running Workload.");
 
+    long totalOps = 0;
     dispatcher.prepareMeasures();
     Map<String, List<Stopwatch>> measures = dispatcher.getMeasures();
     for (Map.Entry<String, List<Stopwatch>> entry : measures.entrySet()) {
       AdaptiveHistogram histogram = new AdaptiveHistogram();
       for (Stopwatch watch : entry.getValue()) {
+        totalOps++;
         histogram.addValue(
           (long)(Math.round(watch.elapsed(TimeUnit.MICROSECONDS) * 100)/100));
       }
@@ -135,6 +136,12 @@ public final class RoadRunner {
       LOGGER.info("  95%: " + histogram.getValueForPercentile(95));
       LOGGER.info("  99%: " + histogram.getValueForPercentile(99));
     }
+
+    long opsPerSecond = (long) (((totalOps*0.1)
+      / workloadStopwatch.elapsed(TimeUnit.MILLISECONDS)) * 10000);
+    LOGGER.info("#### Total Ops: " + totalOps +", Elapsed: "
+      + workloadStopwatch.elapsed(TimeUnit.MILLISECONDS) + "ms");
+    LOGGER.info("#### That is around " + opsPerSecond + "ops/s.");
   }
 
   /**
