@@ -135,7 +135,9 @@ public final class RoadRunner {
       LOGGER.info("  99%: " + histogram.getValueForPercentile(99));
     }
 
-    long totalOps = config.getNumDocs();
+    LOGGER.info("### Total Runtime: " + workloadStopwatch.elapsed(TimeUnit.SECONDS));
+    
+    long totalOps = dispatcher.getTotalOps();
     long opsPerSecond = (long) (((totalOps*0.1)
       / workloadStopwatch.elapsed(TimeUnit.MILLISECONDS)) * 10000);
     LOGGER.info("#### Total Ops: " + totalOps +", Elapsed: "

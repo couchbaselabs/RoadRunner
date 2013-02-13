@@ -1,3 +1,6 @@
 target/
 nbactions.xml
 .DS_Store
+.idea
+*.iml
+*.xml

@@ -43,6 +43,7 @@ public abstract class Workload implements Runnable {
   }
 
   abstract public Map<String, List<Stopwatch>> getMeasures();
+  abstract public long getTotalOps();
 
   /**
    * @return the client

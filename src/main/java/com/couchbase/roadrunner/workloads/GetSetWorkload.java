@@ -41,6 +41,9 @@ public class GetSetWorkload extends Workload {
   /** Ratio to sample statistics data. */
   private final int sampling;
 
+  /** Number of total operations executed. */
+  private long totalOps;
+
   /** Benchmark information */
   private List<Stopwatch> getMeasures;
   private List<Stopwatch> setMeasures;
@@ -55,13 +58,12 @@ public class GetSetWorkload extends Workload {
 
     this.getMeasures = new ArrayList<Stopwatch>();
     this.setMeasures = new ArrayList<Stopwatch>();
-
+    this.totalOps = 0;
   }
 
   @Override
   public void run() {
     Thread.currentThread().setName(getWorkloadName());
-    CouchbaseClient client = getClient();
 
     int samplingCount = 0;
     for(long i=0;i<amount;i++) {
@@ -94,6 +96,7 @@ public class GetSetWorkload extends Workload {
 
   private void setWorkload(String key) throws Exception {
     getClient().set(key, 0, "hello World").get();
+    totalOps++;
   }
 
   private void getWorkloadWithMeasurement(String key) throws Exception {
@@ -105,14 +108,19 @@ public class GetSetWorkload extends Workload {
 
   private void getWorkload(String key) throws Exception {
     getClient().get(key);
+    totalOps++;
   }
 
-  public Map<String, List<Stopwatch>> getMeasures() {
+  public final Map<String, List<Stopwatch>> getMeasures() {
     Map<String, List<Stopwatch>> measures =
       new HashMap<String, List<Stopwatch>>();
     measures.put("get", getMeasures);
     measures.put("set", setMeasures);
     return measures;
+  }
+
+  public long getTotalOps() {
+    return this.totalOps;
   }
 
   private String randomKey() {

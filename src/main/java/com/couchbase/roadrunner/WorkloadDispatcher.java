@@ -23,6 +23,7 @@
 package com.couchbase.roadrunner;
 
 import com.couchbase.roadrunner.workloads.GetSetWorkload;
+import com.couchbase.roadrunner.workloads.GetsCasWorkload;
 import com.couchbase.roadrunner.workloads.Workload;
 import com.google.common.base.Stopwatch;
 import java.util.ArrayList;
@@ -78,7 +79,7 @@ final class WorkloadDispatcher {
    */
   public void dispatchWorkload() throws Exception {
     for(ClientHandler handler : clientHandlers) {
-      handler.executeWorkload(GetSetWorkload.class);
+      handler.executeWorkload(GetsCasWorkload.class);
     }
     for(ClientHandler handler : clientHandlers) {
       handler.cleanup();
@@ -105,5 +106,13 @@ final class WorkloadDispatcher {
 
   public Map<String, List<Stopwatch>> getMeasures() {
     return mergedMeasures;
+  }
+
+  public long getTotalOps() {
+    long totalOps = 0;
+    for (ClientHandler handler : clientHandlers) {
+      totalOps += handler.getTotalOps();
+    }
+    return totalOps;
   }
 }

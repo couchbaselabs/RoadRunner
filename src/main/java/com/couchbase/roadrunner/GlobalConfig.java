@@ -46,10 +46,10 @@ final class GlobalConfig {
   private static final String DEFAULT_NODES = "127.0.0.1";
   private static final String DEFAULT_BUCKET = "default";
   private static final String DEFAULT_PASSWORD = "";
-  private static final String DEFAULT_NUM_THREADS = "1";
+  private static final String DEFAULT_NUM_THREADS = "50";
   private static final String DEFAULT_NUM_CLIENTS = "1";
   private static final String DEFAULT_NUM_DOCS = "1000";
-  private static final String DEFAULT_RATIO = "1";
+  private static final String DEFAULT_RATIO = "500";
   private static final String DEFAULT_SAMPLING = "100";
 
   private final List<URI> nodes;

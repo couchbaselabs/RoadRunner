@@ -148,4 +148,12 @@ class ClientHandler {
     return mergedMeasures;
   }
 
+  public long getTotalOps() {
+    long totalOps = 0;
+    for(Workload workload : workloads) {
+      totalOps += workload.getTotalOps();
+    }
+    return totalOps;
+  }
+
 }
