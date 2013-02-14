@@ -25,6 +25,7 @@ package com.couchbase.roadrunner;
 import com.couchbase.roadrunner.workloads.GetSetWorkload;
 import com.couchbase.roadrunner.workloads.GetsCasWorkload;
 import com.couchbase.roadrunner.workloads.Workload;
+import com.couchbase.roadrunner.workloads.WorkloadFactory;
 import com.google.common.base.Stopwatch;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -78,8 +79,10 @@ final class WorkloadDispatcher {
    * Distribute and run the workload against the ClientHandlers.
    */
   public void dispatchWorkload() throws Exception {
+    Class<? extends Workload> clazz =
+      WorkloadFactory.getWorkload(config.getWorkload());
     for(ClientHandler handler : clientHandlers) {
-      handler.executeWorkload(GetsCasWorkload.class);
+      handler.executeWorkload(clazz);
     }
     for(ClientHandler handler : clientHandlers) {
       handler.cleanup();

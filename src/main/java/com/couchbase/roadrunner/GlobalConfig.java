@@ -51,6 +51,7 @@ final class GlobalConfig {
   private static final String DEFAULT_NUM_DOCS = "1000";
   private static final String DEFAULT_RATIO = "500";
   private static final String DEFAULT_SAMPLING = "100";
+  private static final String DEFAULT_WORKLOAD = "getset";
 
   private final List<URI> nodes;
   private final String bucket;
@@ -60,6 +61,7 @@ final class GlobalConfig {
   private final long numDocs;
   private final int ratio;
   private final int sampling;
+  private final String workload;
 
   /**
    * Create the GlobalConfig.
@@ -71,7 +73,8 @@ final class GlobalConfig {
    * @param numClients The number of CouchbaseClients.
    */
   private GlobalConfig(List<URI> nodes, String bucket, String password,
-    int numThreads, int numClients, long numDocs, int ratio, int sampling) {
+    int numThreads, int numClients, long numDocs, int ratio, int sampling,
+    String workload) {
     this.nodes = Collections.unmodifiableList(nodes);
     this.bucket = bucket;
     this.password = password;
@@ -80,6 +83,7 @@ final class GlobalConfig {
     this.numDocs = numDocs;
     this.ratio = ratio;
     this.sampling = sampling;
+    this.workload = workload;
   }
 
   /**
@@ -106,10 +110,12 @@ final class GlobalConfig {
       ? args.getOptionValue("ratio") : DEFAULT_RATIO;
     String sampling = args.hasOption("sampling")
       ? args.getOptionValue("sampling") : DEFAULT_SAMPLING;
+    String workload = args.hasOption("workload")
+      ? args.getOptionValue("workload") : DEFAULT_WORKLOAD;
     return new GlobalConfig(prepareNodeList(nodes), bucket, password,
       Integer.parseInt(numThreads), Integer.parseInt(numClients),
       Long.parseLong(numDocs), Integer.parseInt(ratio),
-      Integer.parseInt(sampling));
+      Integer.parseInt(sampling), workload);
   }
 
   /**
@@ -167,14 +173,6 @@ final class GlobalConfig {
     return numClients;
   }
 
-  @Override
-  public String toString() {
-    return "GlobalConfig{" + "nodes=" + nodes + ", bucket=" + bucket
-      + ", password=" + password + ", numThreads=" + numThreads
-      + ", numClients=" + numClients + ", numDocs=" + numDocs
-      + ", ratio=" + ratio + ", sampling=" + sampling + '}';
-  }
-
   /**
    * @return the numDocs
    */
@@ -195,4 +193,21 @@ final class GlobalConfig {
   public int getSampling() {
     return sampling;
   }
+
+  /**
+   * @return the workload
+   */
+  public String getWorkload() {
+    return workload;
+  }
+
+  @Override
+  public String toString() {
+    return "GlobalConfig{" + "nodes=" + nodes + ", bucket=" + bucket
+      + ", password=" + password + ", numThreads=" + numThreads
+      + ", numClients=" + numClients + ", numDocs=" + numDocs
+      + ", ratio=" + ratio + ", sampling=" + sampling + ", workload="
+      + workload + '}';
+  }
+
 }

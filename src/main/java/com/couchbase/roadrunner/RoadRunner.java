@@ -135,12 +135,12 @@ public final class RoadRunner {
       LOGGER.info("  99%: " + histogram.getValueForPercentile(99));
     }
 
-    LOGGER.info("### Total Runtime: " + workloadStopwatch.elapsed(TimeUnit.SECONDS));
+    LOGGER.info("#### Total Runtime: " + workloadStopwatch.elapsed(TimeUnit.SECONDS));
     
     long totalOps = dispatcher.getTotalOps();
     long opsPerSecond = (long) (((totalOps*0.1)
       / workloadStopwatch.elapsed(TimeUnit.MILLISECONDS)) * 10000);
-    LOGGER.info("#### Total Ops: " + totalOps +", Elapsed: "
+    LOGGER.info("#### Total Ops: " + totalOps + ", Elapsed: "
       + workloadStopwatch.elapsed(TimeUnit.MILLISECONDS) + "ms");
     LOGGER.info("#### That is around " + opsPerSecond + "ops/s.");
   }
@@ -181,6 +181,8 @@ public final class RoadRunner {
       "Number of documents to work with (default: \"1000\").");
     options.addOption("r", "ratio", true,
       "Ratio - depending on workload (default: \"1\").");
+    options.addOption("w", "workload", true,
+      "Workload - name of the workload (default: \"getset\".");
     options.addOption("h", "help", false,
       "Print this help message.");
     options.addOption("s", "sampling", true, "% Sample Rate (default 100%)");
