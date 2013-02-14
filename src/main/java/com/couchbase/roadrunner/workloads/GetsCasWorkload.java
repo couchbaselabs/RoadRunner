@@ -48,29 +48,19 @@ public class GetsCasWorkload extends Workload {
   /** Ratio to sample statistics data. */
   private final int sampling;
 
-  /** Number of total operations executed. */
-  private long totalOps;
-
-  /** Benchmark information */
-  private List<Stopwatch> casMeasures;
-  private List<Stopwatch> getsMeasures;
-
   public GetsCasWorkload(CouchbaseClient client, String name, long amount,
-    int ratio, int sampling) {
-    super(client, name);
+    int ratio, int sampling, int ramp) {
+    super(client, name, ramp);
     this.amount = amount;
     this.ratio = ratio;
     this.sampling = 100 / sampling;
-
-    this.casMeasures = new ArrayList<Stopwatch>();
-    this.getsMeasures = new ArrayList<Stopwatch>();
-    this.totalOps = 0;
   }
 
   @Override
   public void run() {
     Thread.currentThread().setName(getWorkloadName());
     CouchbaseClient client = getClient();
+    startTimer();
 
     int samplingCount = 0;
     for (long i=0;i < amount;i++) {
@@ -90,13 +80,11 @@ public class GetsCasWorkload extends Workload {
           }
         }
       } catch (Exception ex) {
-        getLogger().info("Problem while set/get key: " + ex.getMessage());
+        getLogger().info("Problem while gets/cas key: " + ex.getMessage());
       }
     }
-  }
 
-  private String randomKey() {
-    return UUID.randomUUID().toString();
+    endTimer();
   }
 
   private String randomString() {
@@ -115,14 +103,14 @@ public class GetsCasWorkload extends Workload {
   private void addWorkload(String key, SampleDocument doc) throws Exception {
     CouchbaseClient client = getClient();
     client.add(key, 0, doc).get();
-    totalOps++;
+    incrTotalOps();
   }
 
   private long getsWorkloadWithMeasurement(String key) {
     Stopwatch watch = new Stopwatch().start();
     long cas = getsWorkload(key);
     watch.stop();
-    getsMeasures.add(watch);
+    addMeasure("gets", watch);
     return cas;
   }
 
@@ -130,13 +118,13 @@ public class GetsCasWorkload extends Workload {
     Stopwatch watch = new Stopwatch().start();
     casWorkload(key, cas, doc);
     watch.stop();
-    casMeasures.add(watch);
+    addMeasure("cas", watch);
   }
 
   private long getsWorkload(String key) {
     CouchbaseClient client = getClient();
     CASValue<Object> casResponse = client.gets(key);
-    totalOps++;
+    incrTotalOps();
     return casResponse.getCas();
   }
 
@@ -146,18 +134,7 @@ public class GetsCasWorkload extends Workload {
     if(response != CASResponse.OK) {
       getLogger().info("Could not store with cas for key: " + key);
     }
-    totalOps++;
-  }
-
-  public final Map<String, List<Stopwatch>> getMeasures() {
-    Map<String, List<Stopwatch>> measures = new HashMap<String, List<Stopwatch>>();
-    measures.put("cas", casMeasures);
-    measures.put("gets", getsMeasures);
-    return measures;
-  }
-
-  public long getTotalOps() {
-    return this.totalOps;
+    incrTotalOps();
   }
 
   static class SampleDocument implements Serializable {

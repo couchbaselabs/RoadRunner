@@ -98,7 +98,7 @@ public final class RoadRunner {
     LOGGER.info("Running with Config: " + config.toString());
 
     try {
-      LOGGER.info("Initializing ClientHandlers.");
+      LOGGER.debug("Initializing ClientHandlers.");
       dispatcher.init();
     } catch (Exception ex) {
       LOGGER.error("Error while initializing the ClientHandlers: ", ex);
@@ -115,34 +115,50 @@ public final class RoadRunner {
     }
     workloadStopwatch.stop();
 
-    LOGGER.info("Finished running Workload.");
+    LOGGER.debug("Finished Workload.");
+
+    LOGGER.info("==== RESULTS ====");
 
     dispatcher.prepareMeasures();
+
+    long totalOps = dispatcher.getTotalOps();
+    long measuredOps = dispatcher.getMeasuredOps();
+
+    LOGGER.info("Operations: measured " + measuredOps + "ops out of total "
+      + totalOps + "ops.");
+
     Map<String, List<Stopwatch>> measures = dispatcher.getMeasures();
     for (Map.Entry<String, List<Stopwatch>> entry : measures.entrySet()) {
-      AdaptiveHistogram histogram = new AdaptiveHistogram();
+      AdaptiveHistogram h = new AdaptiveHistogram();
       for (Stopwatch watch : entry.getValue()) {
-        histogram.addValue(
-          (long)(Math.round(watch.elapsed(TimeUnit.MICROSECONDS) * 100)/100));
+        h.addValue(watch.elapsed(TimeUnit.MICROSECONDS));
       }
 
-      LOGGER.info("#### Percentile (in microseconds) for "+entry.getKey()+":");
-      LOGGER.info("   5%: " + histogram.getValueForPercentile(5));
-      LOGGER.info("  25%: " + histogram.getValueForPercentile(25));
-      LOGGER.info("  50%: " + histogram.getValueForPercentile(50));
-      LOGGER.info("  75%: " + histogram.getValueForPercentile(75));
-      LOGGER.info("  95%: " + histogram.getValueForPercentile(95));
-      LOGGER.info("  99%: " + histogram.getValueForPercentile(99));
+      LOGGER.info("Percentile (microseconds) for \""+entry.getKey()+"\" Workload:");
+      LOGGER.info("   50%:" + (Math.round(h.getValueForPercentile(50) * 100)/100)
+        + "   75%:" + (Math.round(h.getValueForPercentile(75) * 100)/100)
+        + "   95%:" + (Math.round(h.getValueForPercentile(95) * 100)/100)
+        + "   99%:" + (Math.round(h.getValueForPercentile(99) * 100)/100));
     }
 
-    LOGGER.info("#### Total Runtime: " + workloadStopwatch.elapsed(TimeUnit.SECONDS));
-    
-    long totalOps = dispatcher.getTotalOps();
-    long opsPerSecond = (long) (((totalOps*0.1)
-      / workloadStopwatch.elapsed(TimeUnit.MILLISECONDS)) * 10000);
-    LOGGER.info("#### Total Ops: " + totalOps + ", Elapsed: "
-      + workloadStopwatch.elapsed(TimeUnit.MILLISECONDS) + "ms");
-    LOGGER.info("#### That is around " + opsPerSecond + "ops/s.");
+    LOGGER.info("Elapsed: " + workloadStopwatch.elapsed(TimeUnit.MILLISECONDS) + "ms");
+
+    List<Stopwatch> elapsedThreads = dispatcher.getThreadElapsed();
+    long shortestThread = 0;
+    long longestThread = 0;
+    for(Stopwatch threadWatch : elapsedThreads) {
+      long threadMs = threadWatch.elapsed(TimeUnit.MILLISECONDS);
+      if (longestThread == 0 || threadMs > longestThread) {
+        longestThread = threadMs;
+      }
+      if(shortestThread == 0 || threadMs < shortestThread) {
+        shortestThread = threadMs;
+      }
+    }
+
+    LOGGER.info("Shortest Thread: " + shortestThread + "ms");
+    LOGGER.info("Longest Thread: " + longestThread + "ms");
+
   }
 
   /**
@@ -168,24 +184,35 @@ public final class RoadRunner {
     Options options = new Options();
     options.addOption("n", "nodes", true,
       "List of nodes to connect, separated with \",\" (default: "
-      + "\"127.0.0.1\").");
+      + "\"" + GlobalConfig.DEFAULT_NODES + "\").");
     options.addOption("b", "bucket", true,
-      "Name of the bucket (default: \"default\").");
+      "Name of the bucket (default: \""
+        + GlobalConfig.DEFAULT_BUCKET + "\").");
     options.addOption("p", "password", true,
-      "Password of the bucket (default: \"\").");
+      "Password of the bucket (default: \""
+        + GlobalConfig.DEFAULT_PASSWORD + "\").");
     options.addOption("t", "num-threads", true,
-      "Number of worker threads per CouchbaseClient object (default: \"1\").");
+      "Number of worker threads per CouchbaseClient object (default: \""
+        + GlobalConfig.DEFAULT_NUM_THREADS + "\").");
     options.addOption("c", "num-clients", true,
-      "Number of CouchbaseClient objects (default: \"1\").");
+      "Number of CouchbaseClient objects (default: \""
+        + GlobalConfig.DEFAULT_NUM_CLIENTS + "\").");
     options.addOption("d", "num-docs", true,
-      "Number of documents to work with (default: \"1000\").");
+      "Number of documents to work with (default: \""
+        + GlobalConfig.DEFAULT_NUM_DOCS + "\").");
     options.addOption("r", "ratio", true,
-      "Ratio - depending on workload (default: \"1\").");
+      "Ratio - depending on workload (default: \""
+        + GlobalConfig.DEFAULT_RATIO + "\").");
     options.addOption("w", "workload", true,
-      "Workload - name of the workload (default: \"getset\".");
+      "Workload - name of the workload (default: \""
+        + GlobalConfig.DEFAULT_WORKLOAD + "\".");
+    options.addOption("r", "ramp", true,
+      "Ramp-Up time in seconds - ignored ops (default: \""
+        + GlobalConfig.DEFAULT_RAMP + "\".");
     options.addOption("h", "help", false,
       "Print this help message.");
-    options.addOption("s", "sampling", true, "% Sample Rate (default 100%)");
+    options.addOption("s", "sampling", true, "% Sample Rate (default \""
+      + GlobalConfig.DEFAULT_SAMPLING + "%\")");
     return options;
   }
 }

@@ -41,29 +41,19 @@ public class GetSetWorkload extends Workload {
   /** Ratio to sample statistics data. */
   private final int sampling;
 
-  /** Number of total operations executed. */
-  private long totalOps;
-
-  /** Benchmark information */
-  private List<Stopwatch> getMeasures;
-  private List<Stopwatch> setMeasures;
-
 
   public GetSetWorkload(CouchbaseClient client, String name, long amount,
-    int ratio, int sampling) {
-    super(client, name);
+    int ratio, int sampling, int ramp) {
+    super(client, name, ramp);
     this.amount = amount;
     this.ratio = ratio;
     this.sampling = 100/sampling;
-
-    this.getMeasures = new ArrayList<Stopwatch>();
-    this.setMeasures = new ArrayList<Stopwatch>();
-    this.totalOps = 0;
   }
 
   @Override
   public void run() {
     Thread.currentThread().setName(getWorkloadName());
+    startTimer();
 
     int samplingCount = 0;
     for(long i=0;i<amount;i++) {
@@ -85,46 +75,32 @@ public class GetSetWorkload extends Workload {
         getLogger().info("Problem while set/get key" + ex.getMessage());
       }
     }
+
+    endTimer();
   }
 
   private void setWorkloadWithMeasurement(String key) throws Exception {
     Stopwatch watch = new Stopwatch().start();
     setWorkload(key);
     watch.stop();
-    setMeasures.add(watch);
+    addMeasure("set", watch);
   }
 
   private void setWorkload(String key) throws Exception {
     getClient().set(key, 0, "hello World").get();
-    totalOps++;
+    incrTotalOps();
   }
 
   private void getWorkloadWithMeasurement(String key) throws Exception {
     Stopwatch watch = new Stopwatch().start();
     getWorkload(key);
     watch.stop();
-    getMeasures.add(watch);
+    addMeasure("get", watch);
   }
 
   private void getWorkload(String key) throws Exception {
     getClient().get(key);
-    totalOps++;
-  }
-
-  public final Map<String, List<Stopwatch>> getMeasures() {
-    Map<String, List<Stopwatch>> measures =
-      new HashMap<String, List<Stopwatch>>();
-    measures.put("get", getMeasures);
-    measures.put("set", setMeasures);
-    return measures;
-  }
-
-  public long getTotalOps() {
-    return this.totalOps;
-  }
-
-  private String randomKey() {
-    return UUID.randomUUID().toString();
+    incrTotalOps();
   }
 
 }

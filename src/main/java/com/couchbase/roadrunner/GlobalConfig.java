@@ -43,15 +43,16 @@ final class GlobalConfig {
   static final Logger LOGGER =
     LoggerFactory.getLogger(GlobalConfig.class.getName());
 
-  private static final String DEFAULT_NODES = "127.0.0.1";
-  private static final String DEFAULT_BUCKET = "default";
-  private static final String DEFAULT_PASSWORD = "";
-  private static final String DEFAULT_NUM_THREADS = "50";
-  private static final String DEFAULT_NUM_CLIENTS = "1";
-  private static final String DEFAULT_NUM_DOCS = "1000";
-  private static final String DEFAULT_RATIO = "500";
-  private static final String DEFAULT_SAMPLING = "100";
-  private static final String DEFAULT_WORKLOAD = "getset";
+  public static final String DEFAULT_NODES = "127.0.0.1";
+  public static final String DEFAULT_BUCKET = "default";
+  public static final String DEFAULT_PASSWORD = "";
+  public static final String DEFAULT_NUM_THREADS = "1";
+  public static final String DEFAULT_NUM_CLIENTS = "1";
+  public static final String DEFAULT_NUM_DOCS = "1000";
+  public static final String DEFAULT_RATIO = "50";
+  public static final String DEFAULT_SAMPLING = "100";
+  public static final String DEFAULT_WORKLOAD = "getset";
+  public static final String DEFAULT_RAMP = "0";
 
   private final List<URI> nodes;
   private final String bucket;
@@ -62,6 +63,7 @@ final class GlobalConfig {
   private final int ratio;
   private final int sampling;
   private final String workload;
+  private final int ramp;
 
   /**
    * Create the GlobalConfig.
@@ -74,7 +76,7 @@ final class GlobalConfig {
    */
   private GlobalConfig(List<URI> nodes, String bucket, String password,
     int numThreads, int numClients, long numDocs, int ratio, int sampling,
-    String workload) {
+    String workload, int ramp) {
     this.nodes = Collections.unmodifiableList(nodes);
     this.bucket = bucket;
     this.password = password;
@@ -84,6 +86,7 @@ final class GlobalConfig {
     this.ratio = ratio;
     this.sampling = sampling;
     this.workload = workload;
+    this.ramp = ramp;
   }
 
   /**
@@ -112,10 +115,12 @@ final class GlobalConfig {
       ? args.getOptionValue("sampling") : DEFAULT_SAMPLING;
     String workload = args.hasOption("workload")
       ? args.getOptionValue("workload") : DEFAULT_WORKLOAD;
+    String ramp = args.hasOption("ramp")
+      ? args.getOptionValue("ramp") : DEFAULT_RAMP;
     return new GlobalConfig(prepareNodeList(nodes), bucket, password,
       Integer.parseInt(numThreads), Integer.parseInt(numClients),
       Long.parseLong(numDocs), Integer.parseInt(ratio),
-      Integer.parseInt(sampling), workload);
+      Integer.parseInt(sampling), workload, Integer.parseInt(ramp));
   }
 
   /**
@@ -195,6 +200,13 @@ final class GlobalConfig {
   }
 
   /**
+   * @return the ramp up time
+   */
+  public int getRamp() {
+    return ramp;
+  }
+
+  /**
    * @return the workload
    */
   public String getWorkload() {
@@ -207,7 +219,7 @@ final class GlobalConfig {
       + ", password=" + password + ", numThreads=" + numThreads
       + ", numClients=" + numClients + ", numDocs=" + numDocs
       + ", ratio=" + ratio + ", sampling=" + sampling + ", workload="
-      + workload + '}';
+      + workload + ", ramp=" + ramp + '}';
   }
 
 }

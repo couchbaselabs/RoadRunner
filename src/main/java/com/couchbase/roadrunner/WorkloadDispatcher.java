@@ -118,4 +118,20 @@ final class WorkloadDispatcher {
     }
     return totalOps;
   }
+
+  public long getMeasuredOps() {
+    long measuredOps = 0;
+    for (ClientHandler handler : clientHandlers) {
+      measuredOps += handler.getMeasuredOps();
+    }
+    return measuredOps;
+  }
+
+  public List<Stopwatch> getThreadElapsed() {
+    List<Stopwatch> elapsed = new ArrayList<Stopwatch>();
+    for(ClientHandler handler : clientHandlers) {
+      elapsed.addAll(handler.getThreadElapsed());
+    }
+    return elapsed;
+  }
 }

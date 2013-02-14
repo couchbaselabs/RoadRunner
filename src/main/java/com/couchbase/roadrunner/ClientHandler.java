@@ -60,7 +60,7 @@ class ClientHandler {
   private List<Workload> workloads;
 
   /** Used to store the merged measures after runs. */
-  Map<String, List<Stopwatch>> mergedMeasures;
+  private Map<String, List<Stopwatch>> mergedMeasures;
 
   /**
    * Initialize the ClientHandler object.
@@ -96,11 +96,11 @@ class ClientHandler {
   public void executeWorkload(Class<? extends Workload> clazz) throws Exception {
     long docsPerThread =  (long)Math.floor(numDocs/config.getNumThreads());
     Constructor<? extends Workload> constructor = clazz.getConstructor(
-      CouchbaseClient.class, String.class, long.class, int.class, int.class);
+      CouchbaseClient.class, String.class, long.class, int.class, int.class, int.class);
     for(int i=0;i<config.getNumThreads();i++) {
      Workload workload = constructor.newInstance(this.client,
        this.id + "/Workload-" + (i+1), docsPerThread, config.getRatio(),
-       config.getSampling());
+       config.getSampling(), config.getRamp());
       workloads.add(workload);
       executor.execute(workload);
     }
@@ -154,6 +154,22 @@ class ClientHandler {
       totalOps += workload.getTotalOps();
     }
     return totalOps;
+  }
+
+  public long getMeasuredOps() {
+    long measuredOps = 0;
+    for(Workload workload : workloads) {
+      measuredOps += workload.getMeasuredOps();
+    }
+    return measuredOps;
+  }
+
+  public List<Stopwatch> getThreadElapsed() {
+    List<Stopwatch> elapsed = new ArrayList<Stopwatch>();
+    for(Workload workload : workloads) {
+      elapsed.add(workload.totalElapsed());
+    }
+    return elapsed;
   }
 
 }

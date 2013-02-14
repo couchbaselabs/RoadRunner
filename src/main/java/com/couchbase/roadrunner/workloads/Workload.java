@@ -24,26 +24,102 @@ package com.couchbase.roadrunner.workloads;
 
 import com.couchbase.client.CouchbaseClient;
 import com.google.common.base.Stopwatch;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class Workload implements Runnable {
 
   /** Configure a reusable logger. */
-  private final Logger LOGGER =
+  private final Logger logger =
     LoggerFactory.getLogger(Workload.class.getName());
+
+  /** Reference to the CouchbaseClient */
   private final CouchbaseClient client;
+
+  /** Name of the Workload */
   private final String workloadName;
 
-  public Workload(final CouchbaseClient client, final String name) {
+  /** Counter of total measured ops */
+  private long measuredOps;
+
+  /** Counter of total ops */
+  private long totalOps;
+
+  /** Ramp time */
+  private long ramp;
+
+  /** Total runtime of this workload thread */
+  private Stopwatch elapsed;
+
+  /** Measures */
+  private Map<String, List<Stopwatch>> measures;
+
+  public Workload(final CouchbaseClient client, final String name,
+    final int ramp) {
     this.client = client;
     this.workloadName = name;
+    this.measures = new HashMap<String, List<Stopwatch>>();
+    this.measuredOps = 0;
+    this.totalOps = 0;
+    this.ramp = ramp;
+    this.elapsed = new Stopwatch();
   }
 
-  abstract public Map<String, List<Stopwatch>> getMeasures();
-  abstract public long getTotalOps();
+  public long getTotalOps() {
+    return totalOps;
+  }
+
+  public void incrTotalOps() {
+    totalOps++;
+  }
+
+  public void startTimer() {
+    elapsed.start();
+  }
+
+  public void endTimer() {
+    elapsed.stop();
+  }
+
+  /**
+   * Store a measure for later retrieval.
+   *
+   * If the ramp-up time is not yet through, don't measure the
+   * operation.
+   *
+   * @param identifier Identifier of the stopwatch.
+   * @param watch The stopwatch.
+   */
+  public void addMeasure(String identifier, Stopwatch watch) {
+    if (elapsed.elapsed(TimeUnit.SECONDS) < ramp) {
+      return;
+    }
+
+    if(!measures.containsKey(identifier)) {
+      measures.put(identifier, new ArrayList<Stopwatch>());
+    }
+    measures.get(identifier).add(watch);
+    measuredOps++;
+  }
+
+  public Map<String, List<Stopwatch>> getMeasures() {
+    return measures;
+  }
+
+  public long getMeasuredOps() {
+    return measuredOps;
+  }
+
+  public Stopwatch totalElapsed() {
+    if(elapsed.isRunning()) {
+      throw new IllegalStateException("Stopwatch still running!");
+    }
+    return elapsed;
+  }
 
   /**
    * @return the client
@@ -63,7 +139,11 @@ public abstract class Workload implements Runnable {
    * @return the logger
    */
   public Logger getLogger() {
-    return LOGGER;
+    return logger;
+  }
+
+  public String randomKey() {
+    return UUID.randomUUID().toString();
   }
 
 
