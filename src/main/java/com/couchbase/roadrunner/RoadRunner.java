@@ -79,13 +79,6 @@ public final class RoadRunner {
       System.exit(-1);
     }
 
-    Properties systemProperties = System.getProperties();
-    systemProperties.put("net.spy.log.LoggerImpl",
-      "net.spy.memcached.compat.log.SunLogger");
-    System.setProperties(systemProperties);
-    java.util.logging.Logger.getLogger("com.couchbase.client")
-      .setLevel(Level.WARNING);
-
     if (params.hasOption("help")) {
       HelpFormatter formatter = new HelpFormatter();
       formatter.printHelp("roadrunner", getCommandLineOptions());

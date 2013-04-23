@@ -24,11 +24,9 @@ package com.couchbase.roadrunner.workloads;
 
 import com.couchbase.client.CouchbaseClient;
 import com.google.common.base.Stopwatch;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+
+import java.io.Serializable;
+import java.util.*;
 
 public class GetSetWorkload extends Workload {
 
@@ -87,7 +85,7 @@ public class GetSetWorkload extends Workload {
   }
 
   private void setWorkload(String key) throws Exception {
-    getClient().set(key, 0, "hello World").get();
+    getClient().set(key, 0, new SampleDocument(10000)).get();
     incrTotalOps();
   }
 
@@ -101,6 +99,18 @@ public class GetSetWorkload extends Workload {
   private void getWorkload(String key) throws Exception {
     getClient().get(key);
     incrTotalOps();
+  }
+
+  static class SampleDocument implements Serializable {
+
+    private final byte[] payload;
+
+    public SampleDocument(int payloadSize) {
+      byte[] bytes = new byte[payloadSize];
+      new Random().nextBytes(bytes);
+      this.payload = bytes;
+    }
+
   }
 
 }
