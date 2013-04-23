@@ -25,6 +25,7 @@ package com.couchbase.roadrunner.workloads;
 import com.couchbase.client.CouchbaseClient;
 import com.google.common.base.Stopwatch;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -55,11 +56,14 @@ public abstract class Workload implements Runnable {
   /** Total runtime of this workload thread */
   private Stopwatch elapsed;
 
+  /** Document Size */
+  private int size;
+
   /** Measures */
   private Map<String, List<Stopwatch>> measures;
 
   public Workload(final CouchbaseClient client, final String name,
-    final int ramp) {
+    final int ramp, final int size) {
     this.client = client;
     this.workloadName = name;
     this.measures = new HashMap<String, List<Stopwatch>>();
@@ -67,6 +71,7 @@ public abstract class Workload implements Runnable {
     this.totalOps = 0;
     this.ramp = ramp;
     this.elapsed = new Stopwatch();
+    this.size = size;
   }
 
   public long getTotalOps() {
@@ -144,6 +149,22 @@ public abstract class Workload implements Runnable {
 
   public String randomKey() {
     return UUID.randomUUID().toString();
+  }
+
+  protected SampleDocument randomDocument() {
+    return new SampleDocument(this.size);
+  }
+
+  static class SampleDocument implements Serializable {
+
+    private final byte[] payload;
+
+    public SampleDocument(int payloadSize) {
+      byte[] bytes = new byte[payloadSize];
+      new Random().nextBytes(bytes);
+      this.payload = bytes;
+    }
+
   }
 
 

@@ -4,7 +4,7 @@
 
   <groupId>com.couchbase</groupId>
   <artifactId>RoadRunner</artifactId>
-  <version>0.2</version>
+  <version>0.3</version>
   <packaging>jar</packaging>
 
   <name>RoadRunner</name>
@@ -50,6 +50,18 @@
     <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+
+    <repositories>
+        <repository>
+            <id>couchbase</id>
+            <name>Couchbase Maven Repository</name>
+            <layout>default</layout>
+            <url>http://files.couchbase.com/maven2/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
   <dependencies>
     <dependency>

@@ -49,8 +49,8 @@ public class GetsCasWorkload extends Workload {
   private final int sampling;
 
   public GetsCasWorkload(CouchbaseClient client, String name, long amount,
-    int ratio, int sampling, int ramp) {
-    super(client, name, ramp);
+    int ratio, int sampling, int ramp, int size) {
+    super(client, name, ramp, size);
     this.amount = amount;
     this.ratio = ratio;
     this.sampling = 100 / sampling;
@@ -96,10 +96,6 @@ public class GetsCasWorkload extends Workload {
     return outputBuffer.toString();
   }
 
-  private SampleDocument randomDocument() {
-    return new SampleDocument(10000);
-  }
-
   private void addWorkload(String key, SampleDocument doc) throws Exception {
     CouchbaseClient client = getClient();
     client.add(key, 0, doc).get();
@@ -137,15 +133,4 @@ public class GetsCasWorkload extends Workload {
     incrTotalOps();
   }
 
-  static class SampleDocument implements Serializable {
-
-    private final byte[] payload;
-
-    public SampleDocument(int payloadSize) {
-      byte[] bytes = new byte[payloadSize];
-      new Random().nextBytes(bytes);
-      this.payload = bytes;
-    }
-
-  }
 }

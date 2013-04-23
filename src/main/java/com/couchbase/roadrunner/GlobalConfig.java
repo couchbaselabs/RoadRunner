@@ -53,6 +53,7 @@ final class GlobalConfig {
   public static final String DEFAULT_SAMPLING = "100";
   public static final String DEFAULT_WORKLOAD = "getset";
   public static final String DEFAULT_RAMP = "0";
+  public static final String DEFAULT_SIZE = "1000";
 
   private final List<URI> nodes;
   private final String bucket;
@@ -64,6 +65,7 @@ final class GlobalConfig {
   private final int sampling;
   private final String workload;
   private final int ramp;
+  private final int size;
 
   /**
    * Create the GlobalConfig.
@@ -76,7 +78,7 @@ final class GlobalConfig {
    */
   private GlobalConfig(List<URI> nodes, String bucket, String password,
     int numThreads, int numClients, long numDocs, int ratio, int sampling,
-    String workload, int ramp) {
+    String workload, int ramp, int size) {
     this.nodes = Collections.unmodifiableList(nodes);
     this.bucket = bucket;
     this.password = password;
@@ -87,6 +89,7 @@ final class GlobalConfig {
     this.sampling = sampling;
     this.workload = workload;
     this.ramp = ramp;
+    this.size = size;
   }
 
   /**
@@ -117,10 +120,13 @@ final class GlobalConfig {
       ? args.getOptionValue("workload") : DEFAULT_WORKLOAD;
     String ramp = args.hasOption("ramp")
       ? args.getOptionValue("ramp") : DEFAULT_RAMP;
+    String size = args.hasOption("size")
+      ? args.getOptionValue("doc-size") : DEFAULT_SIZE;
     return new GlobalConfig(prepareNodeList(nodes), bucket, password,
       Integer.parseInt(numThreads), Integer.parseInt(numClients),
       Long.parseLong(numDocs), Integer.parseInt(ratio),
-      Integer.parseInt(sampling), workload, Integer.parseInt(ramp));
+      Integer.parseInt(sampling), workload, Integer.parseInt(ramp),
+      Integer.parseInt(size));
   }
 
   /**
@@ -213,13 +219,17 @@ final class GlobalConfig {
     return workload;
   }
 
+  public int getDocumentSize() {
+    return size;
+  }
+
   @Override
   public String toString() {
     return "GlobalConfig{" + "nodes=" + nodes + ", bucket=" + bucket
       + ", password=" + password + ", numThreads=" + numThreads
       + ", numClients=" + numClients + ", numDocs=" + numDocs
       + ", ratio=" + ratio + ", sampling=" + sampling + ", workload="
-      + workload + ", ramp=" + ramp + '}';
+      + workload + ", ramp=" + ramp + ", doc-size=" + size + '}';
   }
 
 }

@@ -206,6 +206,8 @@ public final class RoadRunner {
       "Print this help message.");
     options.addOption("s", "sampling", true, "% Sample Rate (default \""
       + GlobalConfig.DEFAULT_SAMPLING + "%\")");
+    options.addOption("S", "doc-size", true, "% Document Size (default \""
+      + GlobalConfig.DEFAULT_SIZE + "%\")");
     return options;
   }
 }

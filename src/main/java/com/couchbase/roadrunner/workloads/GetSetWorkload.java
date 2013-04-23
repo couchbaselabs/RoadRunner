@@ -41,8 +41,8 @@ public class GetSetWorkload extends Workload {
 
 
   public GetSetWorkload(CouchbaseClient client, String name, long amount,
-    int ratio, int sampling, int ramp) {
-    super(client, name, ramp);
+    int ratio, int sampling, int ramp, int size) {
+    super(client, name, ramp, size);
     this.amount = amount;
     this.ratio = ratio;
     this.sampling = 100/sampling;
@@ -85,7 +85,7 @@ public class GetSetWorkload extends Workload {
   }
 
   private void setWorkload(String key) throws Exception {
-    getClient().set(key, 0, new SampleDocument(10000)).get();
+    getClient().set(key, 0, randomDocument()).get();
     incrTotalOps();
   }
 
@@ -99,18 +99,6 @@ public class GetSetWorkload extends Workload {
   private void getWorkload(String key) throws Exception {
     getClient().get(key);
     incrTotalOps();
-  }
-
-  static class SampleDocument implements Serializable {
-
-    private final byte[] payload;
-
-    public SampleDocument(int payloadSize) {
-      byte[] bytes = new byte[payloadSize];
-      new Random().nextBytes(bytes);
-      this.payload = bytes;
-    }
-
   }
 
 }
