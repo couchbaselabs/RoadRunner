@@ -100,28 +100,28 @@ final class GlobalConfig {
    * @return A immutable GlobalConfig object.
    */
   public static GlobalConfig fromCommandLine(final CommandLine args) {
-    String nodes = args.hasOption("nodes")
-      ? args.getOptionValue("nodes") : DEFAULT_NODES;
-    String bucket = args.hasOption("bucket")
-      ? args.getOptionValue("bucket") : DEFAULT_BUCKET;
-    String password = args.hasOption("password")
-      ? args.getOptionValue("password") : DEFAULT_PASSWORD;
-    String numThreads = args.hasOption("num-threads")
-      ? args.getOptionValue("num-threads") : DEFAULT_NUM_THREADS;
-    String numClients = args.hasOption("num-clients")
-      ? args.getOptionValue("num-clients") : DEFAULT_NUM_CLIENTS;
-    String numDocs = args.hasOption("num-docs")
-      ? args.getOptionValue("num-docs") : DEFAULT_NUM_DOCS;
-    String ratio = args.hasOption("ratio")
-      ? args.getOptionValue("ratio") : DEFAULT_RATIO;
-    String sampling = args.hasOption("sampling")
-      ? args.getOptionValue("sampling") : DEFAULT_SAMPLING;
-    String workload = args.hasOption("workload")
-      ? args.getOptionValue("workload") : DEFAULT_WORKLOAD;
-    String ramp = args.hasOption("ramp")
-      ? args.getOptionValue("ramp") : DEFAULT_RAMP;
-    String size = args.hasOption("size")
-      ? args.getOptionValue("doc-size") : DEFAULT_SIZE;
+    String nodes = args.hasOption(RoadRunner.OPT_NODES)
+      ? args.getOptionValue(RoadRunner.OPT_NODES) : DEFAULT_NODES;
+    String bucket = args.hasOption(RoadRunner.OPT_BUCKET)
+      ? args.getOptionValue(RoadRunner.OPT_BUCKET) : DEFAULT_BUCKET;
+    String password = args.hasOption(RoadRunner.OPT_PASSWORD)
+      ? args.getOptionValue(RoadRunner.OPT_PASSWORD) : DEFAULT_PASSWORD;
+    String numThreads = args.hasOption(RoadRunner.OPT_NUM_THREADS)
+      ? args.getOptionValue(RoadRunner.OPT_NUM_THREADS) : DEFAULT_NUM_THREADS;
+    String numClients = args.hasOption(RoadRunner.OPT_NUM_CLIENTS)
+      ? args.getOptionValue(RoadRunner.OPT_NUM_CLIENTS) : DEFAULT_NUM_CLIENTS;
+    String numDocs = args.hasOption(RoadRunner.OPT_NUM_DOCS)
+      ? args.getOptionValue(RoadRunner.OPT_NUM_DOCS) : DEFAULT_NUM_DOCS;
+    String ratio = args.hasOption(RoadRunner.OPT_RATIO)
+      ? args.getOptionValue(RoadRunner.OPT_RATIO) : DEFAULT_RATIO;
+    String sampling = args.hasOption(RoadRunner.OPT_SAMPLING)
+      ? args.getOptionValue(RoadRunner.OPT_SAMPLING) : DEFAULT_SAMPLING;
+    String workload = args.hasOption(RoadRunner.OPT_WORKLOAD)
+      ? args.getOptionValue(RoadRunner.OPT_WORKLOAD) : DEFAULT_WORKLOAD;
+    String ramp = args.hasOption(RoadRunner.OPT_RAMP)
+      ? args.getOptionValue(RoadRunner.OPT_RAMP) : DEFAULT_RAMP;
+    String size = args.hasOption(RoadRunner.OPT_DOC_SIZE)
+      ? args.getOptionValue(RoadRunner.OPT_DOC_SIZE) : DEFAULT_SIZE;
     return new GlobalConfig(prepareNodeList(nodes), bucket, password,
       Integer.parseInt(numThreads), Integer.parseInt(numClients),
       Long.parseLong(numDocs), Integer.parseInt(ratio),
