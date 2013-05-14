@@ -50,7 +50,7 @@ When used without any argument, it will run against `127.0.0.1`, use the `defaul
 13:50:59.214 [main] INFO  com.couchbase.roadrunner.RoadRunner -   95%: 2177.5
 13:50:59.215 [main] INFO  com.couchbase.roadrunner.RoadRunner -   99%: 2177.5
 ```
-The workload here finished in `20ms`. You can also find the percentile recordings, not that they are in microseconds, not miliseconds! This means that 75% of all set requests finished in 0.49ms and 95% in 2.1ms. This output format is currently not customizable.
+The workload here finished in `20ms`. You can also find the percentile recordings, note that they are in microseconds, not milliseconds! This means that 75% of all set requests finished in 0.49ms and 95% in 2.1ms. This output format is currently not customizable.
 
 Build
 -----
