@@ -26,6 +26,7 @@ public class GlobalConfigTest
     private static final String WORKLOAD = "testWorkload";
     private static final String RAMP = "" + RAMP_TIME;
     private static final String SIZE = "" + DOC_SIZE;
+    private static final String FILENAME = "./file.json";
 
     private static final String NODE_POOLS = "http://" + NODE + ":8091/pools";
 
@@ -44,6 +45,7 @@ public class GlobalConfigTest
                         "-s", SAMPLING, //
                         "-w", WORKLOAD, //
                         "-r", RAMP, //
+                        "-f", FILENAME, //
                         "-S", SIZE //
                         };
         CommandLine parsed = RoadRunner.parseCommandLine(args);
@@ -60,6 +62,7 @@ public class GlobalConfigTest
         Assert.assertEquals(config.getSampling(), SAMPLING_RATE, "sampling");
         Assert.assertEquals(config.getWorkload(), WORKLOAD, "workload");
         Assert.assertEquals(config.getRamp(), RAMP_TIME, "ramp");
+        Assert.assertEquals(config.getFilename(), FILENAME, "filename");
         Assert.assertEquals(config.getDocumentSize(), DOC_SIZE, "doc size");
     }
 }

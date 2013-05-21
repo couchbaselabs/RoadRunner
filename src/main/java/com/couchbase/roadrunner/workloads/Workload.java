@@ -22,15 +22,24 @@
 
 package com.couchbase.roadrunner.workloads;
 
-import com.couchbase.client.CouchbaseClient;
-import com.google.common.base.Stopwatch;
-
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.couchbase.client.CouchbaseClient;
+import com.google.common.base.Charsets;
+import com.google.common.base.Stopwatch;
+import com.google.common.io.Files;
 
 public abstract class Workload implements Runnable {
 
@@ -56,14 +65,13 @@ public abstract class Workload implements Runnable {
   /** Total runtime of this workload thread */
   private Stopwatch elapsed;
 
-  /** Document Size */
-  private int size;
-
   /** Measures */
   private Map<String, List<Stopwatch>> measures;
 
+  private final DocumentFactory documentFactory;
+
   public Workload(final CouchbaseClient client, final String name,
-    final int ramp, final int size) {
+    final int ramp, final DocumentFactory documentFactory) {
     this.client = client;
     this.workloadName = name;
     this.measures = new HashMap<String, List<Stopwatch>>();
@@ -71,7 +79,7 @@ public abstract class Workload implements Runnable {
     this.totalOps = 0;
     this.ramp = ramp;
     this.elapsed = new Stopwatch();
-    this.size = size;
+    this.documentFactory = documentFactory;
   }
 
   public long getTotalOps() {
@@ -151,21 +159,92 @@ public abstract class Workload implements Runnable {
     return UUID.randomUUID().toString();
   }
 
-  protected SampleDocument randomDocument() {
-    return new SampleDocument(this.size);
+  protected SampleDocument getDocument() {
+    return documentFactory.getDocument();
   }
 
-  static class SampleDocument implements Serializable {
+  static interface SampleDocument{}
 
-    private final byte[] payload;
+  /**
+   * This document consists entirely of random bytes.
+   */
+  static class RandomDocument implements Serializable, SampleDocument {
 
-    public SampleDocument(int payloadSize) {
+    private static final long serialVersionUID = 974277240501163457L;
+    public final byte[] payload;
+
+    public RandomDocument(int payloadSize) {
       byte[] bytes = new byte[payloadSize];
       new Random().nextBytes(bytes);
       this.payload = bytes;
     }
-
   }
 
+  static class FileReaderDocument implements Serializable, SampleDocument {
 
+    private static final long serialVersionUID = 1612506081910846384L;
+    public final byte[] payload;
+
+    public FileReaderDocument(String filename) throws IOException
+    {
+      File file = new File(filename);
+      List<String> lines = Files.readLines(file, Charsets.UTF_8);
+      StringBuilder sb = new StringBuilder();
+      for (String line : lines)
+      {
+        sb.append(line.trim());
+      }
+      payload = sb.toString().getBytes();
+    }
+  }
+
+  public static interface DocumentFactory{
+    SampleDocument getDocument();
+  }
+
+  /**
+   * Generates documents of a fixed size but each document has a random sequence
+   * of bytes.
+   *
+   * @author bvesco, May 21, 2013
+   */
+  public static class FixedSizeRandomDocumentFactory implements DocumentFactory {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final int sizeInBytes;
+
+    public FixedSizeRandomDocumentFactory(int sizeInBytes){
+      this.sizeInBytes = sizeInBytes;
+      logger.info("Factory using document size of {} bytes", this.sizeInBytes);
+    }
+
+    @Override
+    public SampleDocument getDocument()
+    {
+        return new RandomDocument(sizeInBytes);
+    }
+  }
+
+  /**
+   * Generates documents with bytes that were read from a file. The same
+   * document is returned every time.
+   *
+   * @author bvesco, May 21, 2013
+   */
+  public static class SingleFileDocumentFactory implements DocumentFactory {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final FileReaderDocument document;
+
+    public SingleFileDocumentFactory(String filename) throws IOException{
+      this.document = new FileReaderDocument(filename);
+      logger.info("Factory using document size of {} bytes", document.payload.length);
+    }
+
+    @Override
+    public SampleDocument getDocument()
+    {
+      return document;
+    }
+  }
 }

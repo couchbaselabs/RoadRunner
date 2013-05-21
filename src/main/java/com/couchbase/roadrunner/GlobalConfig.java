@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * It also sets sensible defaults when no or a subset of arguments are
  * provided.
  */
-final class GlobalConfig {
+final  class GlobalConfig {
 
   /** Configure a reusable logger. */
   static final Logger LOGGER =
@@ -66,6 +66,7 @@ final class GlobalConfig {
   private final String workload;
   private final int ramp;
   private final int size;
+  private final String filename;
 
   /**
    * Create the GlobalConfig.
@@ -78,7 +79,7 @@ final class GlobalConfig {
    */
   private GlobalConfig(List<URI> nodes, String bucket, String password,
     int numThreads, int numClients, long numDocs, int ratio, int sampling,
-    String workload, int ramp, int size) {
+    String workload, int ramp, int size, String filename) {
     this.nodes = Collections.unmodifiableList(nodes);
     this.bucket = bucket;
     this.password = password;
@@ -90,6 +91,7 @@ final class GlobalConfig {
     this.workload = workload;
     this.ramp = ramp;
     this.size = size;
+    this.filename = filename;
   }
 
   /**
@@ -122,11 +124,12 @@ final class GlobalConfig {
       ? args.getOptionValue(RoadRunner.OPT_RAMP) : DEFAULT_RAMP;
     String size = args.hasOption(RoadRunner.OPT_DOC_SIZE)
       ? args.getOptionValue(RoadRunner.OPT_DOC_SIZE) : DEFAULT_SIZE;
+    String filename = args.hasOption(RoadRunner.OPT_FILENAME) ? args.getOptionValue(RoadRunner.OPT_FILENAME) : null;
     return new GlobalConfig(prepareNodeList(nodes), bucket, password,
       Integer.parseInt(numThreads), Integer.parseInt(numClients),
       Long.parseLong(numDocs), Integer.parseInt(ratio),
       Integer.parseInt(sampling), workload, Integer.parseInt(ramp),
-      Integer.parseInt(size));
+      Integer.parseInt(size), filename);
   }
 
   /**
@@ -223,13 +226,17 @@ final class GlobalConfig {
     return size;
   }
 
+  public String getFilename()
+  {
+    return filename;
+  }
+
   @Override
   public String toString() {
     return "GlobalConfig{" + "nodes=" + nodes + ", bucket=" + bucket
       + ", password=" + password + ", numThreads=" + numThreads
       + ", numClients=" + numClients + ", numDocs=" + numDocs
       + ", ratio=" + ratio + ", sampling=" + sampling + ", workload="
-      + workload + ", ramp=" + ramp + ", doc-size=" + size + '}';
+      + workload + ", ramp=" + ramp + ", doc-size=" + size + ", data-filename=" + filename + '}';
   }
-
 }
