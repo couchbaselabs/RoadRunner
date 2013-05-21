@@ -180,6 +180,14 @@ public abstract class Workload implements Runnable {
     }
   }
 
+  /**
+   * Reads a file from disk and uses the contents as the document to be stored.
+   * Each line of the file is trimmed and concatenated down to a single string.
+   * This allows a "friendly" json/xml/other document with formatting to be
+   * given even though the internal representation would not be formatted.
+   *
+   * @author bvesco, May 21, 2013
+   */
   static class FileReaderDocument implements Serializable, SampleDocument {
 
     private static final long serialVersionUID = 1612506081910846384L;
