@@ -55,7 +55,20 @@ import org.slf4j.LoggerFactory;
  */
 public final class RoadRunner {
 
-  /** Configure a reusable logger. */
+  public static final String OPT_NODES = "nodes";
+  public static final String OPT_BUCKET = "bucket";
+  public static final String OPT_PASSWORD = "password";
+  public static final String OPT_NUM_THREADS = "num-threads";
+  public static final String OPT_NUM_CLIENTS = "num-clients";
+  public static final String OPT_NUM_DOCS = "num-docs";
+  public static final String OPT_RATIO = "ratio";
+  public static final String OPT_WORKLOAD = "workload";
+  public static final String OPT_RAMP = "ramp";
+  public static final String OPT_HELP = "help";
+  public static final String OPT_SAMPLING = "sampling";
+  public static final String OPT_DOC_SIZE = "doc-size";
+  public static final String OPT_FILENAME = "data-filename";
+/** Configure a reusable logger. */
   private static final Logger LOGGER =
     LoggerFactory.getLogger(RoadRunner.class.getName());
 
@@ -79,7 +92,7 @@ public final class RoadRunner {
       System.exit(-1);
     }
 
-    if (params.hasOption("help")) {
+    if (params.hasOption(OPT_HELP)) {
       HelpFormatter formatter = new HelpFormatter();
       formatter.printHelp("roadrunner", getCommandLineOptions());
       System.exit(0);
@@ -161,7 +174,7 @@ public final class RoadRunner {
    * @return The parsed command line options.
    * @throws ParseException Thrown when the command line could not be parsed.
    */
-  private static CommandLine parseCommandLine(final String[] args)
+   static CommandLine parseCommandLine(final String[] args)
     throws ParseException {
     CommandLineParser parser = new PosixParser();
     CommandLine params =  parser.parse(getCommandLineOptions(), args);
@@ -173,41 +186,42 @@ public final class RoadRunner {
    *
    * @return Supported command line options.
    */
-  private static Options getCommandLineOptions() {
+   static Options getCommandLineOptions() {
     Options options = new Options();
-    options.addOption("n", "nodes", true,
+    options.addOption("n", OPT_NODES, true,
       "List of nodes to connect, separated with \",\" (default: "
       + "\"" + GlobalConfig.DEFAULT_NODES + "\").");
-    options.addOption("b", "bucket", true,
+    options.addOption("b", OPT_BUCKET, true,
       "Name of the bucket (default: \""
         + GlobalConfig.DEFAULT_BUCKET + "\").");
-    options.addOption("p", "password", true,
+    options.addOption("p", OPT_PASSWORD, true,
       "Password of the bucket (default: \""
         + GlobalConfig.DEFAULT_PASSWORD + "\").");
-    options.addOption("t", "num-threads", true,
+    options.addOption("t", OPT_NUM_THREADS, true,
       "Number of worker threads per CouchbaseClient object (default: \""
         + GlobalConfig.DEFAULT_NUM_THREADS + "\").");
-    options.addOption("c", "num-clients", true,
+    options.addOption("c", OPT_NUM_CLIENTS, true,
       "Number of CouchbaseClient objects (default: \""
         + GlobalConfig.DEFAULT_NUM_CLIENTS + "\").");
-    options.addOption("d", "num-docs", true,
+    options.addOption("d", OPT_NUM_DOCS, true,
       "Number of documents to work with (default: \""
         + GlobalConfig.DEFAULT_NUM_DOCS + "\").");
-    options.addOption("r", "ratio", true,
+    options.addOption("R", OPT_RATIO, true,
       "Ratio - depending on workload (default: \""
         + GlobalConfig.DEFAULT_RATIO + "\").");
-    options.addOption("w", "workload", true,
+    options.addOption("s", OPT_SAMPLING, true, "% Sample Rate (default \""
+                    + GlobalConfig.DEFAULT_SAMPLING + "%\")");
+    options.addOption("w", OPT_WORKLOAD, true,
       "Workload - name of the workload (default: \""
         + GlobalConfig.DEFAULT_WORKLOAD + "\".");
-    options.addOption("r", "ramp", true,
+    options.addOption("r", OPT_RAMP, true,
       "Ramp-Up time in seconds - ignored ops (default: \""
         + GlobalConfig.DEFAULT_RAMP + "\".");
-    options.addOption("h", "help", false,
+    options.addOption("S", OPT_DOC_SIZE, true, "Document Size in bytes (default \""
+                    + GlobalConfig.DEFAULT_SIZE + "\")");
+    options.addOption("h", OPT_HELP, false,
       "Print this help message.");
-    options.addOption("s", "sampling", true, "% Sample Rate (default \""
-      + GlobalConfig.DEFAULT_SAMPLING + "%\")");
-    options.addOption("S", "doc-size", true, "% Document Size (default \""
-      + GlobalConfig.DEFAULT_SIZE + "%\")");
+    options.addOption("f", OPT_FILENAME, true, "filename containing the data to use in the test");
     return options;
   }
 }
