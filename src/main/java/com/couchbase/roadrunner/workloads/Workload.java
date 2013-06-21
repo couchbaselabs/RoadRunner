@@ -246,7 +246,7 @@ public abstract class Workload implements Runnable {
 
     public SingleFileDocumentFactory(String filename) throws IOException{
       this.document = new FileReaderDocument(filename);
-      logger.info("Factory using document size of {} bytes", document.payload.length);
+      logger.info("Factory using document size of {} bytes from {}", document.payload.length, filename);
     }
 
     @Override
