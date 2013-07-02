@@ -23,6 +23,7 @@
 package com.couchbase.roadrunner;
 
 import com.flaptor.hist4j.AdaptiveHistogram;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import java.util.List;
 import java.util.Map;
@@ -174,6 +175,7 @@ public final class RoadRunner {
    * @return The parsed command line options.
    * @throws ParseException Thrown when the command line could not be parsed.
    */
+   @VisibleForTesting
    static CommandLine parseCommandLine(final String[] args)
     throws ParseException {
     CommandLineParser parser = new PosixParser();
@@ -186,6 +188,7 @@ public final class RoadRunner {
    *
    * @return Supported command line options.
    */
+   @VisibleForTesting
    static Options getCommandLineOptions() {
     Options options = new Options();
     options.addOption("n", OPT_NODES, true,
