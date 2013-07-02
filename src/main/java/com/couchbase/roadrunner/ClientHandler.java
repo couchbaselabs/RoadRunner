@@ -22,18 +22,19 @@
 
 package com.couchbase.roadrunner;
 
-import com.couchbase.client.CouchbaseClient;
-import com.couchbase.roadrunner.workloads.Workload;
-import com.google.common.base.Stopwatch;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import com.couchbase.client.CouchbaseClient;
+import com.couchbase.roadrunner.workloads.Workload;
+import com.couchbase.roadrunner.workloads.Workload.DocumentFactory;
+import com.google.common.base.Stopwatch;
 
 /**
  * The ClientHandler is responsible for managing its own thread pool and
@@ -93,15 +94,15 @@ class ClientHandler {
    * @param clazz the Workload class name.
    * @throws Exception
    */
-  public void executeWorkload(Class<? extends Workload> clazz) throws Exception {
+  public void executeWorkload(Class<? extends Workload> clazz, DocumentFactory documentFactory) throws Exception {
     long docsPerThread =  (long)Math.floor(numDocs/config.getNumThreads());
     Constructor<? extends Workload> constructor = clazz.getConstructor(
       CouchbaseClient.class, String.class, long.class, int.class, int.class,
-      int.class, int.class);
+      int.class, DocumentFactory.class);
     for(int i=0;i<config.getNumThreads();i++) {
      Workload workload = constructor.newInstance(this.client,
        this.id + "/Workload-" + (i+1), docsPerThread, config.getRatio(),
-       config.getSampling(), config.getRamp(), config.getDocumentSize());
+       config.getSampling(), config.getRamp(), documentFactory);
       workloads.add(workload);
       executor.execute(workload);
     }
@@ -131,7 +132,6 @@ class ClientHandler {
     for(Workload workload : workloads) {
       Map<String, List<Stopwatch>> measures = workload.getMeasures();
       for (Map.Entry<String, List<Stopwatch>> entry : measures.entrySet()) {
-        List<Stopwatch> stored;
         if(mergedMeasures.containsKey(entry.getKey())) {
           mergedMeasures.get(entry.getKey()).addAll(entry.getValue());
         } else {
