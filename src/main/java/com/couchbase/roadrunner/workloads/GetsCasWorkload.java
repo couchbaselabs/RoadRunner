@@ -23,6 +23,7 @@
 package com.couchbase.roadrunner.workloads;
 
 import com.couchbase.client.CouchbaseClient;
+import com.couchbase.roadrunner.workloads.Workload.DocumentFactory;
 import com.google.common.base.Stopwatch;
 import net.spy.memcached.CASResponse;
 import net.spy.memcached.CASValue;
@@ -49,8 +50,8 @@ public class GetsCasWorkload extends Workload {
   private final int sampling;
 
   public GetsCasWorkload(CouchbaseClient client, String name, long amount,
-    int ratio, int sampling, int ramp, int size) {
-    super(client, name, ramp, size);
+    int ratio, int sampling, int ramp, DocumentFactory documentFactory) {
+    super(client, name, ramp, documentFactory);
     this.amount = amount;
     this.ratio = ratio;
     this.sampling = 100 / sampling;
@@ -66,17 +67,17 @@ public class GetsCasWorkload extends Workload {
     for (long i=0;i < amount;i++) {
       String key = randomKey();
       try {
-        addWorkload(key, randomDocument());
+        addWorkload(key, getDocument());
         if(++samplingCount == sampling) {
           for(int r=0;r<ratio;r++) {
             long cas = getsWorkloadWithMeasurement(key);
-            casWorkloadWithMeasurement(key, cas, randomDocument());
+            casWorkloadWithMeasurement(key, cas, getDocument());
           }
           samplingCount = 0;
         } else {
           for(int r=0;r<ratio;r++) {
             long cas = getsWorkload(key);
-            casWorkload(key, cas,  randomDocument());
+            casWorkload(key, cas,  getDocument());
           }
         }
       } catch (Exception ex) {

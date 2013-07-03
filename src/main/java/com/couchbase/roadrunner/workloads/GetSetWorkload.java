@@ -23,6 +23,7 @@
 package com.couchbase.roadrunner.workloads;
 
 import com.couchbase.client.CouchbaseClient;
+import com.couchbase.roadrunner.workloads.Workload.DocumentFactory;
 import com.google.common.base.Stopwatch;
 
 import java.io.Serializable;
@@ -41,8 +42,8 @@ public class GetSetWorkload extends Workload {
 
 
   public GetSetWorkload(CouchbaseClient client, String name, long amount,
-    int ratio, int sampling, int ramp, int size) {
-    super(client, name, ramp, size);
+    int ratio, int sampling, int ramp, DocumentFactory documentFactory) {
+    super(client, name, ramp, documentFactory);
     this.amount = amount;
     this.ratio = ratio;
     this.sampling = 100/sampling;
@@ -85,7 +86,7 @@ public class GetSetWorkload extends Workload {
   }
 
   private void setWorkload(String key) throws Exception {
-    getClient().set(key, 0, randomDocument()).get();
+    getClient().set(key, 0, getDocument()).get();
     incrTotalOps();
   }
 

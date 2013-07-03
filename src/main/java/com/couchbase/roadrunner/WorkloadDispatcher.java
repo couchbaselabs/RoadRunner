@@ -22,17 +22,20 @@
 
 package com.couchbase.roadrunner;
 
-import com.couchbase.roadrunner.workloads.GetSetWorkload;
-import com.couchbase.roadrunner.workloads.GetsCasWorkload;
-import com.couchbase.roadrunner.workloads.Workload;
-import com.couchbase.roadrunner.workloads.WorkloadFactory;
-import com.google.common.base.Stopwatch;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.couchbase.roadrunner.workloads.Workload;
+import com.couchbase.roadrunner.workloads.Workload.DocumentFactory;
+import com.couchbase.roadrunner.workloads.Workload.FixedSizeRandomDocumentFactory;
+import com.couchbase.roadrunner.workloads.Workload.SingleFileDocumentFactory;
+import com.couchbase.roadrunner.workloads.WorkloadFactory;
+import com.google.common.base.Stopwatch;
 
 /**
  * The WorkloadDispatcher is responsible for initializing the Clients, their
@@ -79,10 +82,16 @@ final class WorkloadDispatcher {
    * Distribute and run the workload against the ClientHandlers.
    */
   public void dispatchWorkload() throws Exception {
+    DocumentFactory documentFactory;
+    if (config.getFilename() == null)
+      documentFactory = new FixedSizeRandomDocumentFactory(config.getDocumentSize());
+    else
+      documentFactory = new SingleFileDocumentFactory(config.getFilename());
+
     Class<? extends Workload> clazz =
       WorkloadFactory.getWorkload(config.getWorkload());
     for(ClientHandler handler : clientHandlers) {
-      handler.executeWorkload(clazz);
+      handler.executeWorkload(clazz, documentFactory);
     }
     for(ClientHandler handler : clientHandlers) {
       handler.cleanup();
@@ -97,7 +106,6 @@ final class WorkloadDispatcher {
     for(ClientHandler handler : clientHandlers) {
       Map<String, List<Stopwatch>> measures = handler.getMeasures();
       for (Map.Entry<String, List<Stopwatch>> entry : measures.entrySet()) {
-        List<Stopwatch> stored;
         if(mergedMeasures.containsKey(entry.getKey())) {
           mergedMeasures.get(entry.getKey()).addAll(entry.getValue());
         } else {
