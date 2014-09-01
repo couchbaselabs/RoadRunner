@@ -22,14 +22,10 @@
 
 package com.couchbase.roadrunner.workloads;
 
-import com.couchbase.client.CouchbaseClient;
-import com.couchbase.roadrunner.workloads.Workload.DocumentFactory;
+import com.couchbase.client.java.Bucket;
+import com.couchbase.client.java.document.LegacyDocument;
+import com.couchbase.client.java.error.CASMismatchException;
 import com.google.common.base.Stopwatch;
-import net.spy.memcached.CASResponse;
-import net.spy.memcached.CASValue;
-
-import java.io.Serializable;
-import java.util.*;
 
 /**
  * The GetsCasWorkload resembles a use case where a document is added, and then
@@ -49,9 +45,9 @@ public class GetsCasWorkload extends Workload {
   /** Ratio to sample statistics data. */
   private final int sampling;
 
-  public GetsCasWorkload(CouchbaseClient client, String name, long amount,
+  public GetsCasWorkload(Bucket bucket, String name, long amount,
     int ratio, int sampling, int ramp, DocumentFactory documentFactory) {
-    super(client, name, ramp, documentFactory);
+    super(bucket, name, ramp, documentFactory);
     this.amount = amount;
     this.ratio = ratio;
     this.sampling = 100 / sampling;
@@ -60,7 +56,6 @@ public class GetsCasWorkload extends Workload {
   @Override
   public void run() {
     Thread.currentThread().setName(getWorkloadName());
-    CouchbaseClient client = getClient();
     startTimer();
 
     int samplingCount = 0;
@@ -97,9 +92,9 @@ public class GetsCasWorkload extends Workload {
     return outputBuffer.toString();
   }
 
-  private void addWorkload(String key, SampleDocument doc) throws Exception {
-    CouchbaseClient client = getClient();
-    client.add(key, 0, doc).get();
+  private void addWorkload(String key, SampleDocument payload) throws Exception {
+    LegacyDocument doc = LegacyDocument.create(key, 0, payload);
+    getBucket().upsert(doc).toBlocking().single();
     incrTotalOps();
   }
 
@@ -119,16 +114,16 @@ public class GetsCasWorkload extends Workload {
   }
 
   private long getsWorkload(String key) {
-    CouchbaseClient client = getClient();
-    CASValue<Object> casResponse = client.gets(key);
+    LegacyDocument doc = getBucket().get(key, LegacyDocument.class).toBlocking().single();
     incrTotalOps();
-    return casResponse.getCas();
+    return doc.cas();
   }
 
-  private void casWorkload(String key, long cas, SampleDocument doc) {
-    CouchbaseClient client = getClient();
-    CASResponse response = client.cas(key, cas, doc);
-    if(response != CASResponse.OK) {
+  private void casWorkload(String key, long cas, SampleDocument payload) {
+    LegacyDocument doc = LegacyDocument.create(key, payload, cas);
+    try {
+      getBucket().replace(doc).toBlocking().single();
+    } catch (CASMismatchException e) {
       getLogger().info("Could not store with cas for key: " + key);
     }
     incrTotalOps();
