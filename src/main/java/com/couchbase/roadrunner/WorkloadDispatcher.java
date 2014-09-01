@@ -30,6 +30,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.CouchbaseCluster;
 import com.couchbase.roadrunner.workloads.Workload;
 import com.couchbase.roadrunner.workloads.Workload.DocumentFactory;
 import com.couchbase.roadrunner.workloads.Workload.FixedSizeRandomDocumentFactory;
@@ -49,6 +51,7 @@ final class WorkloadDispatcher {
 
   /** The global configuration object. */
   private final GlobalConfig config;
+  private final Cluster cluster;
 
   /** Links to the clientHandlers for each CouchabaseClient. */
   private List<ClientHandler> clientHandlers;
@@ -62,6 +65,7 @@ final class WorkloadDispatcher {
    */
   public WorkloadDispatcher(final GlobalConfig config) {
     this.config = config;
+    this.cluster = CouchbaseCluster.create(config.getNodes());
     this.clientHandlers = new ArrayList<ClientHandler>();
     this.mergedMeasures = new HashMap<String, List<Stopwatch>>();
   }
@@ -70,11 +74,17 @@ final class WorkloadDispatcher {
    * Initialize and run the ClientHandlers.
    */
   public void init() throws Exception {
-    long docsPerHandler = (long)Math.floor(
-      config.getNumDocs()/config.getNumClients());
-    for(int i=0;i<config.getNumClients();i++) {
-      clientHandlers.add(new ClientHandler(config, "ClientHandler-"+(i+1),
-        docsPerHandler));
+    try {
+      long docsPerHandler = (long)Math.floor(
+          config.getNumDocs()/config.getNumClients());
+      for (int i=0;i<config.getNumClients();i++) {
+        clientHandlers.add(new ClientHandler(config, cluster, "ClientHandler-"+(i+1),
+            docsPerHandler));
+      }
+    } catch (Exception e) {
+      //fire disconnection and wait for it to be effective
+      cluster.disconnect().toBlocking().single();
+      throw e;
     }
   }
 
@@ -82,19 +92,24 @@ final class WorkloadDispatcher {
    * Distribute and run the workload against the ClientHandlers.
    */
   public void dispatchWorkload() throws Exception {
-    DocumentFactory documentFactory;
-    if (config.getFilename() == null)
-      documentFactory = new FixedSizeRandomDocumentFactory(config.getDocumentSize());
-    else
-      documentFactory = new SingleFileDocumentFactory(config.getFilename());
+    try {
+      DocumentFactory documentFactory;
+      if (config.getFilename() == null)
+        documentFactory = new FixedSizeRandomDocumentFactory(config.getDocumentSize());
+      else
+        documentFactory = new SingleFileDocumentFactory(config.getFilename());
 
-    Class<? extends Workload> clazz =
-      WorkloadFactory.getWorkload(config.getWorkload());
-    for(ClientHandler handler : clientHandlers) {
-      handler.executeWorkload(clazz, documentFactory);
-    }
-    for(ClientHandler handler : clientHandlers) {
-      handler.cleanup();
+      Class<? extends Workload> clazz =
+          WorkloadFactory.getWorkload(config.getWorkload());
+      for(ClientHandler handler : clientHandlers) {
+        handler.executeWorkload(clazz, documentFactory);
+      }
+      for(ClientHandler handler : clientHandlers) {
+        handler.cleanup();
+      }
+    } finally {
+      //fire disconnection and wait for it to be effective
+      cluster.disconnect().toBlocking().single();
     }
   }
 
