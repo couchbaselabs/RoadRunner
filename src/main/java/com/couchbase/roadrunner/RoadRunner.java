@@ -22,14 +22,11 @@
 
 package com.couchbase.roadrunner;
 
-import com.flaptor.hist4j.AdaptiveHistogram;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Stopwatch;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
+
+import org.HdrHistogram.Histogram;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -38,6 +35,9 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Stopwatch;
 
 /**
  * The RoadRunner project is a load tester for your Couchbase cluster.
@@ -136,16 +136,16 @@ public final class RoadRunner {
 
     Map<String, List<Stopwatch>> measures = dispatcher.getMeasures();
     for (Map.Entry<String, List<Stopwatch>> entry : measures.entrySet()) {
-      AdaptiveHistogram h = new AdaptiveHistogram();
+      Histogram h = new Histogram(60*60*1000, 5);
       for (Stopwatch watch : entry.getValue()) {
-        h.addValue(watch.elapsed(TimeUnit.MICROSECONDS));
+        h.recordValue(watch.elapsed(TimeUnit.MICROSECONDS));
       }
 
       LOGGER.info("Percentile (microseconds) for \""+entry.getKey()+"\" Workload:");
-      LOGGER.info("   50%:" + (Math.round(h.getValueForPercentile(50) * 100)/100)
-        + "   75%:" + (Math.round(h.getValueForPercentile(75) * 100)/100)
-        + "   95%:" + (Math.round(h.getValueForPercentile(95) * 100)/100)
-        + "   99%:" + (Math.round(h.getValueForPercentile(99) * 100)/100));
+      LOGGER.info("   50%:" + (Math.round(h.getValueAtPercentile(0.5) * 100)/100)
+        + "   75%:" + (Math.round(h.getValueAtPercentile(0.75) * 100)/100)
+        + "   95%:" + (Math.round(h.getValueAtPercentile(0.95) * 100)/100)
+        + "   99%:" + (Math.round(h.getValueAtPercentile(0.99) * 100)/100));
     }
 
     LOGGER.info("Elapsed: " + workloadStopwatch.elapsed(TimeUnit.MILLISECONDS) + "ms");
