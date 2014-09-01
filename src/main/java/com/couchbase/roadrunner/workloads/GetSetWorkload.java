@@ -22,12 +22,9 @@
 
 package com.couchbase.roadrunner.workloads;
 
-import com.couchbase.client.CouchbaseClient;
-import com.couchbase.roadrunner.workloads.Workload.DocumentFactory;
+import com.couchbase.client.java.Bucket;
+import com.couchbase.client.java.document.LegacyDocument;
 import com.google.common.base.Stopwatch;
-
-import java.io.Serializable;
-import java.util.*;
 
 public class GetSetWorkload extends Workload {
 
@@ -41,9 +38,9 @@ public class GetSetWorkload extends Workload {
   private final int sampling;
 
 
-  public GetSetWorkload(CouchbaseClient client, String name, long amount,
+  public GetSetWorkload(Bucket bucket, String name, long amount,
     int ratio, int sampling, int ramp, DocumentFactory documentFactory) {
-    super(client, name, ramp, documentFactory);
+    super(bucket, name, ramp, documentFactory);
     this.amount = amount;
     this.ratio = ratio;
     this.sampling = 100/sampling;
@@ -86,7 +83,8 @@ public class GetSetWorkload extends Workload {
   }
 
   private void setWorkload(String key) throws Exception {
-    getClient().set(key, 0, getDocument()).get();
+    LegacyDocument value = LegacyDocument.create(key, 0, getDocument());
+    getBucket().insert(value).toBlocking().single();
     incrTotalOps();
   }
 
@@ -98,7 +96,8 @@ public class GetSetWorkload extends Workload {
   }
 
   private void getWorkload(String key) throws Exception {
-    getClient().get(key);
+    //measure by blocking on the get operation, awaiting the value
+    getBucket().get(key, LegacyDocument.class).toBlocking().single();
     incrTotalOps();
   }
 
