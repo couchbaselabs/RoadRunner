@@ -31,7 +31,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.couchbase.client.CouchbaseClient;
+import com.couchbase.client.java.Bucket;
+import com.couchbase.client.java.Cluster;
 import com.couchbase.roadrunner.workloads.Workload;
 import com.couchbase.roadrunner.workloads.Workload.DocumentFactory;
 import com.google.common.base.Stopwatch;
@@ -48,8 +49,8 @@ class ClientHandler {
   /** The ThreadPoolExecutor for managing threads. */
   private final ThreadPoolExecutor executor;
 
-  /** Its own CouchbaseClient object. */
-  private final CouchbaseClient client;
+  /** Its own Bucket reference. */
+  private final Bucket client;
 
   /** The identifier of this ClientHandler. */
   private final String id;
@@ -68,14 +69,14 @@ class ClientHandler {
    *
    * @param config the global configuration object.
    */
-  public ClientHandler(final GlobalConfig config, final String id,
+  public ClientHandler(final GlobalConfig config, final Cluster cluster, final String id,
     final long numDocs)
     throws Exception {
     this.config = config;
     this.id = id;
     this.numDocs = numDocs;
-    this.client = new CouchbaseClient(config.getNodes(), config.getBucket(),
-      config.getPassword());
+    //open the bucket asynchronously and then wait for it
+    this.client = cluster.openBucket(config.getBucket(), config.getPassword()).toBlocking().single();
     this.executor = new ThreadPoolExecutor(
       config.getNumThreads(),
       config.getNumThreads(),
@@ -97,7 +98,7 @@ class ClientHandler {
   public void executeWorkload(Class<? extends Workload> clazz, DocumentFactory documentFactory) throws Exception {
     long docsPerThread =  (long)Math.floor(numDocs/config.getNumThreads());
     Constructor<? extends Workload> constructor = clazz.getConstructor(
-      CouchbaseClient.class, String.class, long.class, int.class, int.class,
+      Bucket.class, String.class, long.class, int.class, int.class,
       int.class, DocumentFactory.class);
     for(int i=0;i<config.getNumThreads();i++) {
      Workload workload = constructor.newInstance(this.client,
@@ -122,7 +123,8 @@ class ClientHandler {
     }
     executor.awaitTermination(1, TimeUnit.MINUTES);
     storeMeasures();
-    this.client.shutdown();
+    //close bucket and wait for it to close
+    this.client.close().toBlocking().single();
   }
 
   /**
