@@ -24,8 +24,9 @@ package com.couchbase.roadrunner.workloads;
 
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.document.LegacyDocument;
-import com.couchbase.client.java.error.CASMismatchException;
 import com.google.common.base.Stopwatch;
+
+import rx.Observable;
 
 /**
  * The GetsCasWorkload resembles a use case where a document is added, and then
@@ -61,26 +62,24 @@ public class GetsCasWorkload extends Workload {
     int samplingCount = 0;
     for (long i=0;i < amount;i++) {
       String key = randomKey();
-      try {
-        addWorkload(key, getDocument());
-        if(++samplingCount == sampling) {
-          for(int r=0;r<ratio;r++) {
-            long cas = getsWorkloadWithMeasurement(key);
-            casWorkloadWithMeasurement(key, cas, getDocument());
-          }
-          samplingCount = 0;
-        } else {
-          for(int r=0;r<ratio;r++) {
-            long cas = getsWorkload(key);
-            casWorkload(key, cas,  getDocument());
-          }
-        }
-      } catch (Exception ex) {
-        getLogger().info("Problem while gets/cas key: " + ex.getMessage());
+      boolean last = i == amount-1;
+
+      if(++samplingCount == sampling) {
+        addWorkload(key, getDocument())
+            .repeat(ratio)
+            .flatMap(d -> getsWorkloadWithMeasurement(key))
+            .flatMap(cas -> casWorkloadWithMeasurement(key, cas, getDocument()))
+            .doOnError(ex -> getLogger().info("Problem while measured gets/cas key: " + ex.getMessage()))
+            .doOnTerminate(() -> { if (last) endTimer(); });
+        samplingCount = 0;
+      } else {
+        addWorkload(key, getDocument())
+            .repeat(ratio)
+            .flatMap(d -> getsWorkload(key))
+            .flatMap(cas -> casWorkload(key, cas, getDocument()))
+            .doOnError(ex -> getLogger().info("Problem while gets/cas key: " + ex.getMessage()));
       }
     }
-
-    endTimer();
   }
 
   private String randomString() {
@@ -92,41 +91,51 @@ public class GetsCasWorkload extends Workload {
     return outputBuffer.toString();
   }
 
-  private void addWorkload(String key, SampleDocument payload) throws Exception {
+  private Observable<LegacyDocument> addWorkload(String key, SampleDocument payload) {
     LegacyDocument doc = LegacyDocument.create(key, 0, payload);
-    getBucket().upsert(doc).toBlocking().single();
-    incrTotalOps();
+    return Observable.defer(() ->
+            getBucket()
+                .upsert(doc)
+                .doOnEach(item -> incrTotalOps())
+    );
   }
 
-  private long getsWorkloadWithMeasurement(String key) {
+  private Observable<Long> getsWorkloadWithMeasurement(String key) {
     Stopwatch watch = new Stopwatch().start();
-    long cas = getsWorkload(key);
-    watch.stop();
-    addMeasure("gets", watch);
-    return cas;
+    return getsWorkload(key)
+        .doOnTerminate(() -> {
+          watch.stop();
+          addMeasure("gets", watch);
+        });
   }
 
-  private void casWorkloadWithMeasurement(String key, long cas, SampleDocument doc) {
+  private Observable<LegacyDocument> casWorkloadWithMeasurement(String key, long cas, SampleDocument doc) {
     Stopwatch watch = new Stopwatch().start();
-    casWorkload(key, cas, doc);
-    watch.stop();
-    addMeasure("cas", watch);
+    return casWorkload(key, cas, doc)
+        .doOnTerminate(() -> {
+          watch.stop();
+          addMeasure("cas", watch);
+        });
   }
 
-  private long getsWorkload(String key) {
-    LegacyDocument doc = getBucket().get(key, LegacyDocument.class).toBlocking().single();
-    incrTotalOps();
-    return doc.cas();
+  private Observable<Long> getsWorkload(String key) {
+    return Observable.defer(() ->
+      getBucket()
+        .get(key, LegacyDocument.class)
+        .map(doc -> doc.cas())
+        .doOnEach(item -> incrTotalOps())
+    );
   }
 
-  private void casWorkload(String key, long cas, SampleDocument payload) {
+  private Observable<LegacyDocument> casWorkload(String key, long cas, SampleDocument payload) {
     LegacyDocument doc = LegacyDocument.create(key, payload, cas);
-    try {
-      getBucket().replace(doc).toBlocking().single();
-    } catch (CASMismatchException e) {
-      getLogger().info("Could not store with cas for key: " + key);
-    }
-    incrTotalOps();
+    return Observable.defer(() ->
+      getBucket()
+        .replace(doc)
+        .doOnEach(item -> incrTotalOps())
+        .doOnError(ex -> getLogger().info("Could not store with cas for key: " + key))
+        .onErrorReturn(ex -> doc)
+    );
   }
 
 }
