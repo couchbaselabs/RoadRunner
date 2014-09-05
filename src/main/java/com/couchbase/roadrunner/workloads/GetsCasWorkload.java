@@ -74,7 +74,8 @@ public class GetsCasWorkload extends Workload {
             .flatMap(d -> getsWorkloadWithMeasurement(key))
             .flatMap(cas -> casWorkloadWithMeasurement(key, cas, getDocument()))
             .doOnError(ex -> getLogger().info("Problem while measured gets/cas key: " + ex.getMessage()))
-            .finallyDo(() -> { if (last) latch.countDown(); });
+            .finallyDo(() -> { if (last) latch.countDown(); })
+        .subscribe();
         samplingCount = 0;
       } else {
         addWorkload(key, getDocument())
@@ -82,7 +83,8 @@ public class GetsCasWorkload extends Workload {
             .flatMap(d -> getsWorkload(key))
             .flatMap(cas -> casWorkload(key, cas, getDocument()))
             .doOnError(ex -> getLogger().info("Problem while gets/cas key: " + ex.getMessage()))
-            .finallyDo(() -> { if (last) latch.countDown(); });
+            .finallyDo(() -> { if (last) latch.countDown(); })
+        .subscribe();
       }
     }
 
@@ -114,21 +116,25 @@ public class GetsCasWorkload extends Workload {
   }
 
   private Observable<Long> getsWorkloadWithMeasurement(String key) {
-    Stopwatch watch = new Stopwatch().start();
-    return getsWorkload(key)
-        .doOnTerminate(() -> {
-          watch.stop();
-          addMeasure("gets", watch);
-        });
+    return Observable.defer(() -> {
+      Stopwatch watch = new Stopwatch().start();
+      return getsWorkload(key)
+          .doOnTerminate(() -> {
+            watch.stop();
+            addMeasure("gets", watch);
+          });
+    });
   }
 
   private Observable<LegacyDocument> casWorkloadWithMeasurement(String key, long cas, SampleDocument doc) {
-    Stopwatch watch = new Stopwatch().start();
-    return casWorkload(key, cas, doc)
-        .doOnTerminate(() -> {
-          watch.stop();
-          addMeasure("cas", watch);
-        });
+    return Observable.defer(() -> {
+      Stopwatch watch = new Stopwatch().start();
+      return casWorkload(key, cas, doc)
+          .doOnTerminate(() -> {
+            watch.stop();
+            addMeasure("cas", watch);
+          });
+    });
   }
 
   private Observable<Long> getsWorkload(String key) {

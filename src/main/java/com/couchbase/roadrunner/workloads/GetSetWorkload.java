@@ -71,7 +71,8 @@ public class GetSetWorkload extends Workload {
               //schedule the ending of the timer at the last iteration
               .finallyDo(() -> {
                 if (last) latch.countDown();
-              });
+              })
+              .subscribe();
 
           samplingCount = 0;
         } else {
@@ -83,7 +84,8 @@ public class GetSetWorkload extends Workload {
               //schedule the ending of the timer at the last iteration
               .finallyDo(() -> {
                 if (last) latch.countDown();
-              });
+              })
+          .subscribe();
         }
     }
 
@@ -97,13 +99,13 @@ public class GetSetWorkload extends Workload {
   }
 
   private Observable<LegacyDocument> setWorkloadWithMeasurement(String key) {
-    Stopwatch watch = new Stopwatch().start();
-    Observable<LegacyDocument> result = setWorkload(key);
-    result.doOnTerminate(() -> {
-      watch.stop();
-      addMeasure("set", watch);
+    return Observable.defer(() -> {
+      Stopwatch watch = new Stopwatch().start();
+      return  setWorkload(key).doOnTerminate(() -> {
+        watch.stop();
+        addMeasure("set", watch);
+      });
     });
-    return result;
   }
 
   private Observable<LegacyDocument> setWorkload(String key)  {
@@ -117,13 +119,14 @@ public class GetSetWorkload extends Workload {
   }
 
   private Observable<LegacyDocument> getWorkloadWithMeasurement(String key) {
-    Stopwatch watch = new Stopwatch().start();
-    Observable<LegacyDocument> result = getWorkload(key);
-    result.doOnTerminate(() -> {
-      watch.stop();
-      addMeasure("get", watch);
+    return Observable.defer(() -> {
+      Stopwatch watch = new Stopwatch().start();
+      return getWorkload(key)
+            .doOnTerminate(() -> {
+              watch.stop();
+              addMeasure("get", watch);
+            });
     });
-    return result;
   }
 
   private Observable<LegacyDocument> getWorkload(String key) {
