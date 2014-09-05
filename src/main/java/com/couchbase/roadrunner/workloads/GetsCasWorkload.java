@@ -71,8 +71,7 @@ public class GetsCasWorkload extends Workload {
 
       if(++samplingCount == sampling) {
         addWorkload(key, getDocument())
-            .repeat(ratio)
-            .flatMap(d -> getsWorkloadWithMeasurement(key))
+            .flatMap(d -> getsWorkloadWithMeasurement(key).repeat(ratio))
             .flatMap(cas -> casWorkloadWithMeasurement(key, cas, getDocument()))
             .doOnError(ex -> getLogger().info("Problem while measured gets/cas key: " + ex.getMessage()))
             .finallyDo(() -> { if (last) latch.countDown(); })
@@ -80,8 +79,7 @@ public class GetsCasWorkload extends Workload {
         samplingCount = 0;
       } else {
         addWorkload(key, getDocument())
-            .repeat(ratio)
-            .flatMap(d -> getsWorkload(key))
+            .flatMap(d -> getsWorkload(key).repeat(ratio))
             .flatMap(cas -> casWorkload(key, cas, getDocument()))
             .doOnError(ex -> getLogger().info("Problem while gets/cas key: " + ex.getMessage()))
             .finallyDo(() -> { if (last) latch.countDown(); })

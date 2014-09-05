@@ -65,8 +65,7 @@ public class GetSetWorkload extends Workload {
         if(++samplingCount == sampling) {
           //launch a measured "set" operation followed by ratio "get" operations, also measured
           setWorkloadWithMeasurement(key)
-              .repeat(ratio)
-              .flatMap(docInDb -> getWorkloadWithMeasurement(key))
+              .flatMap(docInDb -> getWorkloadWithMeasurement(key).repeat(ratio))
               .doOnError(ex -> getLogger().info("Problem while measured set/get key" + ex.getMessage()))
               //schedule the ending of the timer at the last iteration
               .finallyDo(() -> {
@@ -78,8 +77,7 @@ public class GetSetWorkload extends Workload {
         } else {
           //launch a simple "set" operation, followed by ratio "get" operations
           setWorkload(key)
-              .repeat(ratio)
-              .flatMap(docInDb -> getWorkload(key))
+              .flatMap(docInDb -> getWorkload(key).repeat(ratio))
               .doOnError(ex -> getLogger().info("Problem while set/get key" + ex.getMessage()))
               //schedule the ending of the timer at the last iteration
               .finallyDo(() -> {
