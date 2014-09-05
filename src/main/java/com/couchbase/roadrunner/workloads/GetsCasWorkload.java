@@ -111,7 +111,7 @@ public class GetsCasWorkload extends Workload {
     return Observable.defer(() ->
             getBucket()
                 .upsert(doc)
-                .doOnEach(item -> incrTotalOps())
+                .doOnNext(item -> incrTotalOps())
     );
   }
 
@@ -119,7 +119,7 @@ public class GetsCasWorkload extends Workload {
     return Observable.defer(() -> {
       Stopwatch watch = new Stopwatch().start();
       return getsWorkload(key)
-          .doOnTerminate(() -> {
+          .finallyDo(() -> {
             watch.stop();
             addMeasure("gets", watch);
           });
@@ -130,7 +130,7 @@ public class GetsCasWorkload extends Workload {
     return Observable.defer(() -> {
       Stopwatch watch = new Stopwatch().start();
       return casWorkload(key, cas, doc)
-          .doOnTerminate(() -> {
+          .finallyDo(() -> {
             watch.stop();
             addMeasure("cas", watch);
           });
@@ -142,7 +142,7 @@ public class GetsCasWorkload extends Workload {
       getBucket()
         .get(key, LegacyDocument.class)
         .map(doc -> doc.cas())
-        .doOnEach(item -> incrTotalOps())
+        .doOnNext(item -> incrTotalOps())
     );
   }
 
@@ -151,7 +151,7 @@ public class GetsCasWorkload extends Workload {
     return Observable.defer(() ->
       getBucket()
         .replace(doc)
-        .doOnEach(item -> incrTotalOps())
+        .doOnNext(item -> incrTotalOps())
         .doOnError(ex -> getLogger().info("Could not store with cas for key: " + key))
         .onErrorReturn(ex -> doc)
     );

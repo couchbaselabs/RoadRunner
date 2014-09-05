@@ -101,7 +101,7 @@ public class GetSetWorkload extends Workload {
   private Observable<LegacyDocument> setWorkloadWithMeasurement(String key) {
     return Observable.defer(() -> {
       Stopwatch watch = new Stopwatch().start();
-      return  setWorkload(key).doOnTerminate(() -> {
+      return  setWorkload(key).finallyDo(() -> {
         watch.stop();
         addMeasure("set", watch);
       });
@@ -113,7 +113,7 @@ public class GetSetWorkload extends Workload {
     Observable<LegacyDocument> result = Observable.defer(() ->
         getBucket()
             .insert(value)
-            .doOnEach(doc -> incrTotalOps())
+            .doOnNext(doc -> incrTotalOps())
     );
     return result;
   }
@@ -122,7 +122,7 @@ public class GetSetWorkload extends Workload {
     return Observable.defer(() -> {
       Stopwatch watch = new Stopwatch().start();
       return getWorkload(key)
-            .doOnTerminate(() -> {
+            .finallyDo(() -> {
               watch.stop();
               addMeasure("get", watch);
             });
@@ -133,7 +133,7 @@ public class GetSetWorkload extends Workload {
     return Observable.defer(() ->
             getBucket()
                 .get(key, LegacyDocument.class)
-                .doOnEach(doc -> incrTotalOps())
+                .doOnNext(doc -> incrTotalOps())
     );
   }
 
