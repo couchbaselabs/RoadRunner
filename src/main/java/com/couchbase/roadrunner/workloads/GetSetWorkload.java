@@ -26,6 +26,8 @@ import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.document.LegacyDocument;
 import com.google.common.base.Stopwatch;
 
+import rx.Observable;
+
 public class GetSetWorkload extends Workload {
 
   /** Amount of documents to set/get. */
@@ -53,52 +55,69 @@ public class GetSetWorkload extends Workload {
 
     int samplingCount = 0;
     for(long i=0;i<amount;i++) {
+      boolean last = i == amount-1;
       String key = randomKey();
-      try {
+
         if(++samplingCount == sampling) {
-          setWorkloadWithMeasurement(key);
-          for(int r=0;r<ratio;r++) {
-            getWorkloadWithMeasurement(key);
-          }
+          //launch a measured "set" operation followed by ratio "get" operations, also measured
+          setWorkloadWithMeasurement(key)
+              .repeat(ratio)
+              .flatMap(docInDb -> getWorkloadWithMeasurement(key))
+              .doOnError(ex -> getLogger().info("Problem while measured set/get key" + ex.getMessage()))
+              //schedule the ending of the timer at the last iteration
+              .doOnTerminate(() -> { if(last) endTimer(); });
+
           samplingCount = 0;
         } else {
-          setWorkload(key);
-          for(int r=0;r<ratio;r++) {
-            getWorkload(key);
-          }
+          //launch a simple "set" operation, followed by ratio "get" operations
+          setWorkload(key)
+              .repeat(ratio)
+              .flatMap(docInDb -> getWorkload(key))
+              .doOnError(ex -> getLogger().info("Problem while set/get key" + ex.getMessage()))
+              //schedule the ending of the timer at the last iteration
+              .doOnTerminate(() -> {
+                if (last) endTimer();
+              });
         }
-      } catch (Exception ex) {
-        getLogger().info("Problem while set/get key" + ex.getMessage());
-      }
     }
-
-    endTimer();
   }
 
-  private void setWorkloadWithMeasurement(String key) throws Exception {
+  private Observable<LegacyDocument> setWorkloadWithMeasurement(String key) {
     Stopwatch watch = new Stopwatch().start();
-    setWorkload(key);
-    watch.stop();
-    addMeasure("set", watch);
+    Observable<LegacyDocument> result = setWorkload(key);
+    result.doOnTerminate(() -> {
+      watch.stop();
+      addMeasure("set", watch);
+    });
+    return result;
   }
 
-  private void setWorkload(String key) throws Exception {
+  private Observable<LegacyDocument> setWorkload(String key)  {
     LegacyDocument value = LegacyDocument.create(key, 0, getDocument());
-    getBucket().insert(value).toBlocking().single();
-    incrTotalOps();
+    Observable<LegacyDocument> result = Observable.defer(() ->
+        getBucket()
+            .insert(value)
+            .doOnEach(doc -> incrTotalOps())
+    );
+    return result;
   }
 
-  private void getWorkloadWithMeasurement(String key) throws Exception {
+  private Observable<LegacyDocument> getWorkloadWithMeasurement(String key) {
     Stopwatch watch = new Stopwatch().start();
-    getWorkload(key);
-    watch.stop();
-    addMeasure("get", watch);
+    Observable<LegacyDocument> result = getWorkload(key);
+    result.doOnTerminate(() -> {
+      watch.stop();
+      addMeasure("get", watch);
+    });
+    return result;
   }
 
-  private void getWorkload(String key) throws Exception {
-    //measure by blocking on the get operation, awaiting the value
-    getBucket().get(key, LegacyDocument.class).toBlocking().single();
-    incrTotalOps();
+  private Observable<LegacyDocument> getWorkload(String key) {
+    return Observable.defer(() ->
+            getBucket()
+                .get(key, LegacyDocument.class)
+                .doOnEach(doc -> incrTotalOps())
+    );
   }
 
 }
