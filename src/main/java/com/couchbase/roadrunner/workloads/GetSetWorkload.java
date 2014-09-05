@@ -22,6 +22,9 @@
 
 package com.couchbase.roadrunner.workloads;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.document.LegacyDocument;
 import com.google.common.base.Stopwatch;
@@ -52,6 +55,7 @@ public class GetSetWorkload extends Workload {
   public void run() {
     Thread.currentThread().setName(getWorkloadName());
     startTimer();
+    CountDownLatch latch = new CountDownLatch(1);
 
     int samplingCount = 0;
     for(long i=0;i<amount;i++) {
@@ -65,7 +69,9 @@ public class GetSetWorkload extends Workload {
               .flatMap(docInDb -> getWorkloadWithMeasurement(key))
               .doOnError(ex -> getLogger().info("Problem while measured set/get key" + ex.getMessage()))
               //schedule the ending of the timer at the last iteration
-              .doOnTerminate(() -> { if(last) endTimer(); });
+              .finallyDo(() -> {
+                if (last) latch.countDown();
+              });
 
           samplingCount = 0;
         } else {
@@ -75,10 +81,18 @@ public class GetSetWorkload extends Workload {
               .flatMap(docInDb -> getWorkload(key))
               .doOnError(ex -> getLogger().info("Problem while set/get key" + ex.getMessage()))
               //schedule the ending of the timer at the last iteration
-              .doOnTerminate(() -> {
-                if (last) endTimer();
+              .finallyDo(() -> {
+                if (last) latch.countDown();
               });
         }
+    }
+
+    try {
+      latch.await(5, TimeUnit.MINUTES);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    } finally {
+      endTimer();
     }
   }
 

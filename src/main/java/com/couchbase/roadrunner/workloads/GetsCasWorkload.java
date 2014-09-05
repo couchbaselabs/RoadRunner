@@ -22,6 +22,9 @@
 
 package com.couchbase.roadrunner.workloads;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.document.LegacyDocument;
 import com.google.common.base.Stopwatch;
@@ -58,6 +61,7 @@ public class GetsCasWorkload extends Workload {
   public void run() {
     Thread.currentThread().setName(getWorkloadName());
     startTimer();
+    CountDownLatch latch = new CountDownLatch(1);
 
     int samplingCount = 0;
     for (long i=0;i < amount;i++) {
@@ -70,15 +74,24 @@ public class GetsCasWorkload extends Workload {
             .flatMap(d -> getsWorkloadWithMeasurement(key))
             .flatMap(cas -> casWorkloadWithMeasurement(key, cas, getDocument()))
             .doOnError(ex -> getLogger().info("Problem while measured gets/cas key: " + ex.getMessage()))
-            .doOnTerminate(() -> { if (last) endTimer(); });
+            .finallyDo(() -> { if (last) latch.countDown(); });
         samplingCount = 0;
       } else {
         addWorkload(key, getDocument())
             .repeat(ratio)
             .flatMap(d -> getsWorkload(key))
             .flatMap(cas -> casWorkload(key, cas, getDocument()))
-            .doOnError(ex -> getLogger().info("Problem while gets/cas key: " + ex.getMessage()));
+            .doOnError(ex -> getLogger().info("Problem while gets/cas key: " + ex.getMessage()))
+            .finallyDo(() -> { if (last) latch.countDown(); });
       }
+    }
+
+    try {
+      latch.await(5, TimeUnit.MINUTES);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    } finally {
+      endTimer();
     }
   }
 
