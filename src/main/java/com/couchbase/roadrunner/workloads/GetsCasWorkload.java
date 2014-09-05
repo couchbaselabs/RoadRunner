@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.document.LegacyDocument;
+import com.couchbase.client.java.error.CASMismatchException;
 import com.google.common.base.Stopwatch;
 
 import rx.Observable;
@@ -152,7 +153,12 @@ public class GetsCasWorkload extends Workload {
       getBucket()
         .replace(doc)
         .doOnNext(item -> incrTotalOps())
-        .doOnError(ex -> getLogger().info("Could not store with cas for key: " + key))
+          .doOnError(ex -> {
+            if (ex instanceof CASMismatchException)
+              getLogger().info("Could not store with cas for key: " + key);
+            else
+              getLogger().info("Unexpected error while storing cas for key " + key + " : " + ex);
+          })
         .onErrorReturn(ex -> doc)
     );
   }
