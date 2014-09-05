@@ -66,7 +66,7 @@ public class GetSetWorkload extends Workload {
           //launch a measured "set" operation followed by ratio "get" operations, also measured
           setWorkloadWithMeasurement(key)
               .flatMap(docInDb -> getWorkloadWithMeasurement(key).repeat(ratio))
-              .doOnError(ex -> getLogger().info("Problem while measured set/get key" + ex.getMessage()))
+              .doOnError(ex -> getLogger().info("Problem while measured set/get key" + ex))
               //schedule the ending of the timer at the last iteration
               .finallyDo(() -> {
                 if (last) latch.countDown();
@@ -78,7 +78,7 @@ public class GetSetWorkload extends Workload {
           //launch a simple "set" operation, followed by ratio "get" operations
           setWorkload(key)
               .flatMap(docInDb -> getWorkload(key).repeat(ratio))
-              .doOnError(ex -> getLogger().info("Problem while set/get key" + ex.getMessage()))
+              .doOnError(ex -> getLogger().info("Problem while set/get key" + ex))
               //schedule the ending of the timer at the last iteration
               .finallyDo(() -> {
                 if (last) latch.countDown();
