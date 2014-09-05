@@ -28,7 +28,7 @@ public class GlobalConfigTest
     private static final String SIZE = "" + DOC_SIZE;
     private static final String FILENAME = "./file.json";
 
-    private static final String NODE_POOLS = "http://" + NODE + ":8091/pools";
+    private static final String NODE_POOLS = NODE;
 
     @Test
     public void testShortOptions() throws ParseException
