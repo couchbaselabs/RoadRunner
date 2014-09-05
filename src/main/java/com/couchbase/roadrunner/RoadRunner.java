@@ -131,12 +131,12 @@ public final class RoadRunner {
     long totalOps = dispatcher.getTotalOps();
     long measuredOps = dispatcher.getMeasuredOps();
 
-    LOGGER.info("Operations: measured " + measuredOps + "ops out of total "
+    LOGGER.info("Operations: measured " + measuredOps + " ops out of total "
       + totalOps + "ops.");
 
     Map<String, List<Stopwatch>> measures = dispatcher.getMeasures();
     for (Map.Entry<String, List<Stopwatch>> entry : measures.entrySet()) {
-      Histogram h = new Histogram(60*60*1000, 5);
+      Histogram h = new Histogram(10*60*1000*1000, 5);
       for (Stopwatch watch : entry.getValue()) {
         h.recordValue(watch.elapsed(TimeUnit.MICROSECONDS));
       }
