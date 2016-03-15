@@ -26,14 +26,6 @@ usage: roadrunner
                           object (default: "1").
 ```
 
-Download
---------
-The easiest way is to download a prebuilt JAR with all dependencies
-included and run it. Note that currently, since its in development, no
-full builds are available to download. As soon as it is more or less
-feature complete, a JAR will be available for download. Until, read on
-how to build it fruther down the document.
-
 Usage
 -----
 When used without any argument, it will run against `127.0.0.1`, use
