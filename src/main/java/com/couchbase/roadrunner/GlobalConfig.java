@@ -22,11 +22,10 @@
 
 package com.couchbase.roadrunner;
 
-import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
 import org.apache.commons.cli.CommandLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +54,7 @@ final  class GlobalConfig {
   public static final String DEFAULT_RAMP = "0";
   public static final String DEFAULT_SIZE = "1000";
 
-  private final List<URI> nodes;
+  private final List<String> nodes;
   private final String bucket;
   private final String password;
   private final int numThreads;
@@ -71,13 +70,13 @@ final  class GlobalConfig {
   /**
    * Create the GlobalConfig.
    *
-   * @param nodes The list of nodes, separated by ",".
+   * @param nodes The list of nodes, as String urls.
    * @param bucket The name of the bucket.
    * @param password The password of the bucket.
    * @param numThreads The number of threads.
    * @param numClients The number of CouchbaseClients.
    */
-  private GlobalConfig(List<URI> nodes, String bucket, String password,
+  private GlobalConfig(List<String> nodes, String bucket, String password,
     int numThreads, int numClients, long numDocs, int ratio, int sampling,
     String workload, int ramp, int size, String filename) {
     this.nodes = Collections.unmodifiableList(nodes);
@@ -135,27 +134,17 @@ final  class GlobalConfig {
   /**
    * Converts the node string into a list of URIs.
    *
-   * @param nodes The node list as a string.
-   * @return The converted list of URIs.
+   * @param nodes The node list as a single string.
+   * @return The nodes converted to a list of Strings (one for each node).
    */
-  private static List<URI> prepareNodeList(final String nodes) {
-    List<String> splitNodes = Arrays.asList(nodes.split(","));
-    List<URI> converted = new ArrayList<URI>();
-    try {
-      for (String node : splitNodes) {
-        converted.add(new URI("http://" + node + ":8091/pools"));
-      }
-    } catch (Exception ex) {
-      LOGGER.error("Could not parse node list: " + ex);
-      System.exit(-1);
-    }
-    return converted;
+  private static List<String> prepareNodeList(final String nodes) {
+    return Arrays.asList(nodes.split(","));
   }
 
   /**
    * @return the nodes
    */
-  public List<URI> getNodes() {
+  public List<String> getNodes() {
     return nodes;
   }
 

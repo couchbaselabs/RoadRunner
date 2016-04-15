@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.couchbase.client.CouchbaseClient;
+import com.couchbase.client.java.Bucket;
 import com.google.common.base.Charsets;
 import com.google.common.base.Stopwatch;
 import com.google.common.io.Files;
@@ -47,8 +47,8 @@ public abstract class Workload implements Runnable {
   private final Logger logger =
     LoggerFactory.getLogger(Workload.class.getName());
 
-  /** Reference to the CouchbaseClient */
-  private final CouchbaseClient client;
+  /** Reference to the Couchbase Bucket */
+  private final Bucket bucket;
 
   /** Name of the Workload */
   private final String workloadName;
@@ -70,9 +70,9 @@ public abstract class Workload implements Runnable {
 
   private final DocumentFactory documentFactory;
 
-  public Workload(final CouchbaseClient client, final String name,
+  public Workload(final Bucket bucket, final String name,
     final int ramp, final DocumentFactory documentFactory) {
-    this.client = client;
+    this.bucket = bucket;
     this.workloadName = name;
     this.measures = new HashMap<String, List<Stopwatch>>();
     this.measuredOps = 0;
@@ -135,10 +135,10 @@ public abstract class Workload implements Runnable {
   }
 
   /**
-   * @return the client
+   * @return the bucket
    */
-  public CouchbaseClient getClient() {
-    return client;
+  protected Bucket getBucket() {
+    return bucket;
   }
 
   /**

@@ -22,14 +22,15 @@
 
 package com.couchbase.roadrunner.workloads;
 
-import com.couchbase.client.CouchbaseClient;
-import com.couchbase.roadrunner.workloads.Workload.DocumentFactory;
-import com.google.common.base.Stopwatch;
-import net.spy.memcached.CASResponse;
-import net.spy.memcached.CASValue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-import java.io.Serializable;
-import java.util.*;
+import com.couchbase.client.java.Bucket;
+import com.couchbase.client.java.document.LegacyDocument;
+import com.couchbase.client.java.error.CASMismatchException;
+import com.google.common.base.Stopwatch;
+
+import rx.Observable;
 
 /**
  * The GetsCasWorkload resembles a use case where a document is added, and then
@@ -49,9 +50,9 @@ public class GetsCasWorkload extends Workload {
   /** Ratio to sample statistics data. */
   private final int sampling;
 
-  public GetsCasWorkload(CouchbaseClient client, String name, long amount,
+  public GetsCasWorkload(Bucket bucket, String name, long amount,
     int ratio, int sampling, int ramp, DocumentFactory documentFactory) {
-    super(client, name, ramp, documentFactory);
+    super(bucket, name, ramp, documentFactory);
     this.amount = amount;
     this.ratio = ratio;
     this.sampling = 100 / sampling;
@@ -60,32 +61,39 @@ public class GetsCasWorkload extends Workload {
   @Override
   public void run() {
     Thread.currentThread().setName(getWorkloadName());
-    CouchbaseClient client = getClient();
     startTimer();
+    CountDownLatch latch = new CountDownLatch(1);
 
     int samplingCount = 0;
     for (long i=0;i < amount;i++) {
       String key = randomKey();
-      try {
-        addWorkload(key, getDocument());
-        if(++samplingCount == sampling) {
-          for(int r=0;r<ratio;r++) {
-            long cas = getsWorkloadWithMeasurement(key);
-            casWorkloadWithMeasurement(key, cas, getDocument());
-          }
-          samplingCount = 0;
-        } else {
-          for(int r=0;r<ratio;r++) {
-            long cas = getsWorkload(key);
-            casWorkload(key, cas,  getDocument());
-          }
-        }
-      } catch (Exception ex) {
-        getLogger().info("Problem while gets/cas key: " + ex.getMessage());
+      boolean last = i == amount-1;
+
+      if(++samplingCount == sampling) {
+        addWorkload(key, getDocument())
+            .flatMap(d -> getsWorkloadWithMeasurement(key).repeat(ratio))
+            .flatMap(cas -> casWorkloadWithMeasurement(key, cas, getDocument()))
+            .doOnError(ex -> getLogger().info("Problem while measured gets/cas key: " + ex))
+            .finallyDo(() -> { if (last) latch.countDown(); })
+        .subscribe();
+        samplingCount = 0;
+      } else {
+        addWorkload(key, getDocument())
+            .flatMap(d -> getsWorkload(key).repeat(ratio))
+            .flatMap(cas -> casWorkload(key, cas, getDocument()))
+            .doOnError(ex -> getLogger().info("Problem while gets/cas key: " + ex))
+            .finallyDo(() -> { if (last) latch.countDown(); })
+        .subscribe();
       }
     }
 
-    endTimer();
+    try {
+      latch.await(5, TimeUnit.MINUTES);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    } finally {
+      endTimer();
+    }
   }
 
   private String randomString() {
@@ -97,41 +105,60 @@ public class GetsCasWorkload extends Workload {
     return outputBuffer.toString();
   }
 
-  private void addWorkload(String key, SampleDocument doc) throws Exception {
-    CouchbaseClient client = getClient();
-    client.add(key, 0, doc).get();
-    incrTotalOps();
+  private Observable<LegacyDocument> addWorkload(String key, SampleDocument payload) {
+    LegacyDocument doc = LegacyDocument.create(key, 0, payload);
+    return Observable.defer(() ->
+            getBucket()
+                .upsert(doc)
+                .doOnNext(item -> incrTotalOps())
+    );
   }
 
-  private long getsWorkloadWithMeasurement(String key) {
-    Stopwatch watch = new Stopwatch().start();
-    long cas = getsWorkload(key);
-    watch.stop();
-    addMeasure("gets", watch);
-    return cas;
+  private Observable<Long> getsWorkloadWithMeasurement(String key) {
+    return Observable.defer(() -> {
+      Stopwatch watch = new Stopwatch().start();
+      return getsWorkload(key)
+          .finallyDo(() -> {
+            watch.stop();
+            addMeasure("gets", watch);
+          });
+    });
   }
 
-  private void casWorkloadWithMeasurement(String key, long cas, SampleDocument doc) {
-    Stopwatch watch = new Stopwatch().start();
-    casWorkload(key, cas, doc);
-    watch.stop();
-    addMeasure("cas", watch);
+  private Observable<LegacyDocument> casWorkloadWithMeasurement(String key, long cas, SampleDocument doc) {
+    return Observable.defer(() -> {
+      Stopwatch watch = new Stopwatch().start();
+      return casWorkload(key, cas, doc)
+          .finallyDo(() -> {
+            watch.stop();
+            addMeasure("cas", watch);
+          });
+    });
   }
 
-  private long getsWorkload(String key) {
-    CouchbaseClient client = getClient();
-    CASValue<Object> casResponse = client.gets(key);
-    incrTotalOps();
-    return casResponse.getCas();
+  private Observable<Long> getsWorkload(String key) {
+    return Observable.defer(() ->
+      getBucket()
+        .get(key, LegacyDocument.class)
+        .map(doc -> doc.cas())
+        .doOnNext(item -> incrTotalOps())
+    );
   }
 
-  private void casWorkload(String key, long cas, SampleDocument doc) {
-    CouchbaseClient client = getClient();
-    CASResponse response = client.cas(key, cas, doc);
-    if(response != CASResponse.OK) {
-      getLogger().info("Could not store with cas for key: " + key);
-    }
-    incrTotalOps();
+  private Observable<LegacyDocument> casWorkload(String key, long cas, SampleDocument payload) {
+    LegacyDocument doc = LegacyDocument.create(key, payload, cas);
+    return Observable.defer(() ->
+      getBucket()
+        .replace(doc)
+        .doOnNext(item -> incrTotalOps())
+          .doOnError(ex -> {
+            if (ex instanceof CASMismatchException)
+              getLogger().info("Could not store with cas for key: " + key);
+            else
+              getLogger().info("Unexpected error while storing cas for key " + key + " : " + ex);
+          })
+        .onErrorReturn(ex -> doc)
+    );
   }
 
 }

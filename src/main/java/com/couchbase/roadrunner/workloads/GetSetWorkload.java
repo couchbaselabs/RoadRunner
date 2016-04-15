@@ -22,12 +22,14 @@
 
 package com.couchbase.roadrunner.workloads;
 
-import com.couchbase.client.CouchbaseClient;
-import com.couchbase.roadrunner.workloads.Workload.DocumentFactory;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import com.couchbase.client.java.Bucket;
+import com.couchbase.client.java.document.LegacyDocument;
 import com.google.common.base.Stopwatch;
 
-import java.io.Serializable;
-import java.util.*;
+import rx.Observable;
 
 public class GetSetWorkload extends Workload {
 
@@ -41,9 +43,9 @@ public class GetSetWorkload extends Workload {
   private final int sampling;
 
 
-  public GetSetWorkload(CouchbaseClient client, String name, long amount,
+  public GetSetWorkload(Bucket bucket, String name, long amount,
     int ratio, int sampling, int ramp, DocumentFactory documentFactory) {
-    super(client, name, ramp, documentFactory);
+    super(bucket, name, ramp, documentFactory);
     this.amount = amount;
     this.ratio = ratio;
     this.sampling = 100/sampling;
@@ -53,53 +55,84 @@ public class GetSetWorkload extends Workload {
   public void run() {
     Thread.currentThread().setName(getWorkloadName());
     startTimer();
+    CountDownLatch latch = new CountDownLatch(1);
 
     int samplingCount = 0;
     for(long i=0;i<amount;i++) {
+      boolean last = i == amount-1;
       String key = randomKey();
-      try {
+
         if(++samplingCount == sampling) {
-          setWorkloadWithMeasurement(key);
-          for(int r=0;r<ratio;r++) {
-            getWorkloadWithMeasurement(key);
-          }
+          //launch a measured "set" operation followed by ratio "get" operations, also measured
+          setWorkloadWithMeasurement(key)
+              .flatMap(docInDb -> getWorkloadWithMeasurement(key).repeat(ratio))
+              .doOnError(ex -> getLogger().info("Problem while measured set/get key" + ex))
+              //schedule the ending of the timer at the last iteration
+              .finallyDo(() -> {
+                if (last) latch.countDown();
+              })
+              .subscribe();
+
           samplingCount = 0;
         } else {
-          setWorkload(key);
-          for(int r=0;r<ratio;r++) {
-            getWorkload(key);
-          }
+          //launch a simple "set" operation, followed by ratio "get" operations
+          setWorkload(key)
+              .flatMap(docInDb -> getWorkload(key).repeat(ratio))
+              .doOnError(ex -> getLogger().info("Problem while set/get key" + ex))
+              //schedule the ending of the timer at the last iteration
+              .finallyDo(() -> {
+                if (last) latch.countDown();
+              })
+          .subscribe();
         }
-      } catch (Exception ex) {
-        getLogger().info("Problem while set/get key" + ex.getMessage());
-      }
     }
 
-    endTimer();
+    try {
+      latch.await(5, TimeUnit.MINUTES);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    } finally {
+      endTimer();
+    }
   }
 
-  private void setWorkloadWithMeasurement(String key) throws Exception {
-    Stopwatch watch = new Stopwatch().start();
-    setWorkload(key);
-    watch.stop();
-    addMeasure("set", watch);
+  private Observable<LegacyDocument> setWorkloadWithMeasurement(String key) {
+    return Observable.defer(() -> {
+      Stopwatch watch = new Stopwatch().start();
+      return  setWorkload(key).finallyDo(() -> {
+        watch.stop();
+        addMeasure("set", watch);
+      });
+    });
   }
 
-  private void setWorkload(String key) throws Exception {
-    getClient().set(key, 0, getDocument()).get();
-    incrTotalOps();
+  private Observable<LegacyDocument> setWorkload(String key)  {
+    LegacyDocument value = LegacyDocument.create(key, 0, getDocument());
+    Observable<LegacyDocument> result = Observable.defer(() ->
+        getBucket()
+            .insert(value)
+            .doOnNext(doc -> incrTotalOps())
+    );
+    return result;
   }
 
-  private void getWorkloadWithMeasurement(String key) throws Exception {
-    Stopwatch watch = new Stopwatch().start();
-    getWorkload(key);
-    watch.stop();
-    addMeasure("get", watch);
+  private Observable<LegacyDocument> getWorkloadWithMeasurement(String key) {
+    return Observable.defer(() -> {
+      Stopwatch watch = new Stopwatch().start();
+      return getWorkload(key)
+            .finallyDo(() -> {
+              watch.stop();
+              addMeasure("get", watch);
+            });
+    });
   }
 
-  private void getWorkload(String key) throws Exception {
-    getClient().get(key);
-    incrTotalOps();
+  private Observable<LegacyDocument> getWorkload(String key) {
+    return Observable.defer(() ->
+            getBucket()
+                .get(key, LegacyDocument.class)
+                .doOnNext(doc -> incrTotalOps())
+    );
   }
 
 }
